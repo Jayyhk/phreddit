@@ -229,6 +229,7 @@ function App() {
           onSortChange={setSortType}
           getCommentCount={getCommentCount}
           getLinkFlairContent={getLinkFlairContent}
+          currentUser={currentUser}
         />
       );
       break;
@@ -461,7 +462,10 @@ function App() {
   return (
     <div id="wrapper">
       <Banner
-        onTitleClick={() => renderView("home")}
+        onTitleClick={() => {
+          setCurrentUser(null);
+          setViewState({ page: "login" });
+        }}
         onSearch={(q) => renderView("search", { query: q })}
         onCreatePost={() => renderView("create-post")}
         isCreatePostActive={viewState.page === "create-post"}

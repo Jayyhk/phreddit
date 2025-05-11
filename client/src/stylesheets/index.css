@@ -189,7 +189,6 @@ select option {
 #create_community_container {
   display: flex;
   justify-content: center;
-  padding-bottom: 10px;
 }
 
 #create_community_button {
@@ -932,4 +931,18 @@ button:disabled {
   min-width: 24px;
   text-align: center;
   color: var(--dark-text-color);
+}
+
+/* Posts Section Headers */
+.posts-section {
+  margin-bottom: 15px;
+}
+
+.section-header {
+  color: var(--dark-text-color);
+  font-size: 18px;
+  font-weight: 500;
+  margin: 15px 0 0px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--delimiter-color);
 }
