@@ -1,19 +1,26 @@
 import React, { useState } from "react";
 import { validateHyperlinks } from "./Helpers";
 
-const CreatePostPage = ({ communities, linkFlairs, onSubmit }) => {
+const CreatePostPage = ({ communities, linkFlairs, onSubmit, currentUser }) => {
   const [communityID, setCommunityID] = useState("");
   const [title, setTitle] = useState("");
   const [selectedLinkFlairID, setSelectedLinkFlairID] = useState("");
   const [linkFlairInput, setLinkFlairInput] = useState("");
   const [content, setContent] = useState("");
-  const [username, setUsername] = useState("");
   const [errors, setErrors] = useState({
     community: "",
     title: "",
     linkFlair: "",
     content: "",
-    username: "",
+  });
+
+  // Sort communities to show joined ones first
+  const sortedCommunities = [...communities].sort((a, b) => {
+    const aIsMember = a.members.includes(currentUser.displayName);
+    const bIsMember = b.members.includes(currentUser.displayName);
+    if (aIsMember && !bIsMember) return -1;
+    if (!aIsMember && bIsMember) return 1;
+    return a.name.localeCompare(b.name);
   });
 
   const handleSubmit = () => {
@@ -23,7 +30,6 @@ const CreatePostPage = ({ communities, linkFlairs, onSubmit }) => {
       title: "",
       linkFlair: "",
       content: "",
-      username: "",
     };
 
     if (!communityID) {
@@ -55,10 +61,6 @@ const CreatePostPage = ({ communities, linkFlairs, onSubmit }) => {
         valid = false;
       }
     }
-    if (username.trim() === "") {
-      newErrors.username = "Creator username is required.";
-      valid = false;
-    }
 
     setErrors(newErrors);
     if (!valid) return;
@@ -68,12 +70,9 @@ const CreatePostPage = ({ communities, linkFlairs, onSubmit }) => {
         communityID,
         title: title.trim(),
         content: content.trim(),
-        postedBy: username.trim(),
+        postedBy: currentUser.displayName,
         selectedLinkFlairID: selectedLinkFlairID || null,
         newLinkFlair: linkFlairInput.trim() || null,
-        // postedDate: new Date(), // set by DB
-        // commentIDs: [], // set by DB
-        // views: 0, // set by DB
       });
     }
   };
@@ -90,7 +89,7 @@ const CreatePostPage = ({ communities, linkFlairs, onSubmit }) => {
           required
         >
           <option value="">Choose a Community...</option>
-          {communities.map((community) => (
+          {sortedCommunities.map((community) => (
             <option key={community._id} value={community._id}>
               {community.name}
             </option>
@@ -153,20 +152,6 @@ const CreatePostPage = ({ communities, linkFlairs, onSubmit }) => {
         />
         {errors.content && (
           <div className="create_post_error">{errors.content}</div>
-        )}
-      </div>
-      <div id="create_post_username_container">
-        <div id="create_post_username">Creator Username (required)</div>
-        <input
-          id="create_post_username_input"
-          type="text"
-          placeholder="Enter Creator Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        {errors.username && (
-          <div className="create_post_error">{errors.username}</div>
         )}
       </div>
       <button

@@ -285,8 +285,18 @@ function App() {
         <CreatePostPage
           communities={communities}
           linkFlairs={linkFlairs}
+          currentUser={currentUser}
           onSubmit={async (data) => {
             try {
+              // First verify the community exists
+              const community = communities.find(
+                (c) => c._id === data.communityID
+              );
+              if (!community) {
+                throw new Error("Selected community not found");
+              }
+
+              // Create link flair if needed
               let flairID = data.selectedLinkFlairID;
               if (!flairID && data.newLinkFlair) {
                 const r1 = await axios.post("/linkflairs", {
@@ -295,6 +305,8 @@ function App() {
                 flairID = r1.data._id;
                 setLinkFlairs((prev) => [r1.data, ...prev]);
               }
+
+              // Create the post
               const r2 = await axios.post("/posts", {
                 title: data.title,
                 content: data.content,
@@ -302,10 +314,14 @@ function App() {
                 postedBy: data.postedBy,
               });
               const newPost = r2.data;
-              setPosts((prev) => [newPost, ...prev]);
+
+              // Add post to community
               await axios.post(`/communities/${data.communityID}/add-post`, {
                 postID: newPost._id,
               });
+
+              // Update local state
+              setPosts((prev) => [newPost, ...prev]);
               setCommunities((prev) =>
                 prev.map((c) =>
                   c._id === data.communityID
@@ -313,9 +329,17 @@ function App() {
                     : c
                 )
               );
-              renderView("home");
+
+              // Navigate to the new post
+              renderView("post", { postID: newPost._id });
             } catch (e) {
               console.error("Failed to create post", e);
+              // Show more specific error message
+              const errorMessage =
+                e.response?.data?.error || e.message || "Failed to create post";
+              alert(
+                `${errorMessage}. Please try again or return to the welcome page.`
+              );
             }
           }}
         />
