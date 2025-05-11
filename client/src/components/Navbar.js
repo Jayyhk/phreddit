@@ -87,7 +87,7 @@ const Navbar = ({
         </button>
       </div>
       <ul id="community_list">
-        {isLoggedIn && joinedCommunities.length > 0 && (
+        {isLoggedIn && (
           <>
             <li className="community-section-header">Joined Communities</li>
             {joinedCommunities.map((community) => (
@@ -103,10 +103,6 @@ const Navbar = ({
                 </a>
               </li>
             ))}
-          </>
-        )}
-        {isLoggedIn && otherCommunities.length > 0 && (
-          <>
             <li className="community-section-header">Other Communities</li>
             {otherCommunities.map((community) => (
               <li key={community._id}>

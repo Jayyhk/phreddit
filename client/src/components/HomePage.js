@@ -168,17 +168,29 @@ const HomePage = ({
         )}
         {searchQuery && (
           <>
-            {!currentUser?.guest && userCommunityPosts.length > 0 && (
-              <div className="posts-section">
-                <h3 className="section-header">Joined Communities</h3>
-                {userCommunityPosts.map(renderPost)}
-              </div>
-            )}
-            {!currentUser?.guest && otherPosts.length > 0 && (
-              <div className="posts-section">
-                <h3 className="section-header">Other Communities</h3>
-                {otherPosts.map(renderPost)}
-              </div>
+            {!currentUser?.guest && (
+              <>
+                <div className="posts-section">
+                  <h3 className="section-header">Joined Communities</h3>
+                  {userCommunityPosts.length > 0 ? (
+                    userCommunityPosts.map(renderPost)
+                  ) : (
+                    <div className="no-posts">
+                      No posts from your joined communities.
+                    </div>
+                  )}
+                </div>
+                <div className="posts-section">
+                  <h3 className="section-header">Other Communities</h3>
+                  {otherPosts.length > 0 ? (
+                    otherPosts.map(renderPost)
+                  ) : (
+                    <div className="no-posts">
+                      No posts from other communities.
+                    </div>
+                  )}
+                </div>
+              </>
             )}
             {currentUser?.guest && (
               <div className="posts-section">{posts.map(renderPost)}</div>

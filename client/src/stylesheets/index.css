@@ -1073,3 +1073,10 @@ button:disabled {
 .navbar-error button:hover {
   background-color: #f0f0f0;
 }
+
+.no-posts {
+  color: var(--input-text-color);
+  font-size: 14px;
+  padding: 10px 0;
+  text-align: center;
+}
