@@ -264,7 +264,9 @@ function App() {
           onEngender={async (data) => {
             try {
               const r = await axios.post("/communities", data);
-              setCommunities((c) => [...c, r.data]);
+              // Fetch fresh communities list to get proper isMember flags
+              const communitiesResponse = await axios.get("/communities");
+              setCommunities(communitiesResponse.data);
               renderView("community", { communityID: r.data._id });
             } catch (e) {
               console.error("Failed to create community", e);
