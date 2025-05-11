@@ -1,2 +1,0 @@
-Add your image files (jpg/png) to this directory containing your UML diagrams 
-for your application.

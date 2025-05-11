@@ -1,1 +1,0 @@
-Add your schema files to this directory.
