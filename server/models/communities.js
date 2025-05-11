@@ -25,7 +25,12 @@ const CommunitySchema = new Schema({
     default: Date.now,
   },
   members: {
-    type: [String],
+    type: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
     required: true,
     minlength: 1,
   },

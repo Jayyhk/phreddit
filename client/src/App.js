@@ -47,17 +47,22 @@ function App() {
       })
       .catch((err) => {
         console.error("Failed to fetch communities:", err);
-        // Show error to user
-        alert("Failed to load communities. Please try refreshing the page.");
+        setCurrentUser(null); // Return to welcome page
       });
     axios
       .get("/posts")
       .then((r) => setPosts(r.data))
-      .catch(console.error);
+      .catch((err) => {
+        console.error("Failed to fetch posts:", err);
+        setCurrentUser(null); // Return to welcome page
+      });
     axios
       .get("/linkflairs")
       .then((r) => setLinkFlairs(r.data))
-      .catch(console.error);
+      .catch((err) => {
+        console.error("Failed to fetch link flairs:", err);
+        setCurrentUser(null); // Return to welcome page
+      });
   }, [currentUser]);
 
   // --- UPDATE COMMENT COUNTS WHEN posts CHANGES ---
@@ -69,7 +74,10 @@ function App() {
         .then((r) =>
           setCommentCounts((cc) => ({ ...cc, [post._id]: r.data.count }))
         )
-        .catch(() => setCommentCounts((cc) => ({ ...cc, [post._id]: 0 })))
+        .catch((err) => {
+          console.error("Failed to fetch comment count:", err);
+          setCurrentUser(null); // Return to welcome page
+        })
     );
   }, [posts, currentUser]);
 
@@ -85,9 +93,10 @@ function App() {
             [post._id]: new Date(r.data.latestCommentDate),
           }))
         )
-        .catch(() =>
-          setLatestDates((ld) => ({ ...ld, [post._id]: new Date(0) }))
-        )
+        .catch((err) => {
+          console.error("Failed to fetch latest comment date:", err);
+          setCurrentUser(null); // Return to welcome page
+        })
     );
   }, [posts, currentUser]);
 
@@ -98,11 +107,17 @@ function App() {
       axios
         .get(`/posts/${pid}`)
         .then((r) => setCurrentPost(r.data))
-        .catch(() => setCurrentPost(null));
+        .catch((err) => {
+          console.error("Failed to fetch post:", err);
+          setCurrentUser(null); // Return to welcome page
+        });
       axios
         .get(`/posts/${pid}/comments/all`)
         .then((r) => setCurrentComments(r.data))
-        .catch(() => setCurrentComments([]));
+        .catch((err) => {
+          console.error("Failed to fetch comments:", err);
+          setCurrentUser(null); // Return to welcome page
+        });
       const comm = communities.find((c) =>
         c.postIDs.map((id) => id.toString()).includes(pid)
       );
@@ -116,7 +131,10 @@ function App() {
       axios
         .get(`/search?query=${encodeURIComponent(viewState.query)}`)
         .then((r) => setSearchResults(r.data))
-        .catch(() => setSearchResults([]));
+        .catch((err) => {
+          console.error("Failed to search:", err);
+          setCurrentUser(null); // Return to welcome page
+        });
     }
   }, [viewState.page, viewState.query]);
 

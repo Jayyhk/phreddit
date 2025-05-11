@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { formatTimeDelta, parseHyperlinks } from "./Helpers";
 
 const HomePage = ({
@@ -10,12 +10,32 @@ const HomePage = ({
   getLinkFlairContent,
   searchQuery,
 }) => {
+  const [error, setError] = useState("");
   const postCount = posts.length;
   const postsLabel = postCount === 1 ? "Post" : "Posts";
   const resultsLabel = postCount === 1 ? "result" : "results";
 
+  const handleSortChange = (sortType) => {
+    try {
+      onSortChange && onSortChange(sortType);
+      setError("");
+    } catch (err) {
+      setError("Failed to sort posts. Please try again.");
+    }
+  };
+
+  const handlePostClick = (postId) => {
+    try {
+      onPostClick && onPostClick(postId);
+      setError("");
+    } catch (err) {
+      setError("Failed to load post. Please try again.");
+    }
+  };
+
   return (
     <div>
+      {error && <div className="banner-error">{error}</div>}
       <div id="home_header">
         <div id="home_header_top">
           <h2>
@@ -29,21 +49,21 @@ const HomePage = ({
             <button
               className="button_style button_hover sort_button"
               id="home_newest"
-              onClick={() => onSortChange && onSortChange("newest")}
+              onClick={() => handleSortChange("newest")}
             >
               Newest
             </button>
             <button
               className="button_style button_hover sort_button"
               id="home_oldest"
-              onClick={() => onSortChange && onSortChange("oldest")}
+              onClick={() => handleSortChange("oldest")}
             >
               Oldest
             </button>
             <button
               className="button_style button_hover sort_button"
               id="home_active"
-              onClick={() => onSortChange && onSortChange("active")}
+              onClick={() => handleSortChange("active")}
             >
               Active
             </button>
@@ -68,7 +88,7 @@ const HomePage = ({
             <div
               key={post._id}
               className="post"
-              onClick={() => onPostClick && onPostClick(post._id)}
+              onClick={() => handlePostClick(post._id)}
               style={{ cursor: "pointer" }}
             >
               <div className="post_header">
@@ -96,6 +116,12 @@ const HomePage = ({
                 }}
               />
               <div className="post_footer">
+                <span className="vote-count">
+                  {post.upvoters.length - post.downvoters.length}{" "}
+                  {post.upvoters.length - post.downvoters.length === 1
+                    ? "Vote"
+                    : "Votes"}
+                </span>
                 <span className="view_count">
                   {post.views} {viewString}
                 </span>

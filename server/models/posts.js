@@ -36,6 +36,14 @@ const PostSchema = new Schema({
     required: true,
     default: 0,
   },
+  upvoters: {
+    type: [String],
+    default: [],
+  },
+  downvoters: {
+    type: [String],
+    default: [],
+  },
 });
 
 PostSchema.virtual("url").get(function () {

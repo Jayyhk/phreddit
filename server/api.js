@@ -706,4 +706,70 @@ router.get("/users/communities", async (req, res) => {
   }
 });
 
+// upvotePost(postID, username)
+router.post("/posts/:id/upvote", async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    // Check if user has already upvoted
+    if (post.upvoters.includes(username)) {
+      // Remove upvote
+      post.upvoters = post.upvoters.filter((voter) => voter !== username);
+    } else {
+      // Remove from downvoters if they downvoted
+      if (post.downvoters.includes(username)) {
+        post.downvoters = post.downvoters.filter((voter) => voter !== username);
+      }
+      // Add upvote
+      post.upvoters.push(username);
+    }
+
+    const savedPost = await post.save();
+    res.json(savedPost);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// downvotePost(postID, username)
+router.post("/posts/:id/downvote", async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    // Check if user has already downvoted
+    if (post.downvoters.includes(username)) {
+      // Remove downvote
+      post.downvoters = post.downvoters.filter((voter) => voter !== username);
+    } else {
+      // Remove from upvoters if they upvoted
+      if (post.upvoters.includes(username)) {
+        post.upvoters = post.upvoters.filter((voter) => voter !== username);
+      }
+      // Add downvote
+      post.downvoters.push(username);
+    }
+
+    const savedPost = await post.save();
+    res.json(savedPost);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

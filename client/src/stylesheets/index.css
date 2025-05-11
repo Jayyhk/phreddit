@@ -334,16 +334,16 @@ select option {
 
 .post_footer {
   display: flex;
+  align-items: center;
   gap: 15px;
   font-size: 12px;
 }
 
-.view_count {
-  color: var(--input-text-color);
-}
-
+.view_count,
 .comment_count {
   color: var(--input-text-color);
+  display: flex;
+  align-items: center;
 }
 
 #community_header {
@@ -905,4 +905,31 @@ button:disabled {
 /* Ensure the two footer buttons share available space */
 .signup-footer .footer-buttons .button_style {
   flex: 1;
+}
+
+.vote-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vote-section button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: var(--dark-text-color);
+  transition: color 0.2s;
+}
+
+.vote-section button:hover {
+  color: var(--reddit-color);
+}
+
+.vote-count {
+  font-weight: bold;
+  min-width: 24px;
+  text-align: center;
+  color: var(--dark-text-color);
 }
