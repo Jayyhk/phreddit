@@ -13,7 +13,6 @@ export default function CreateAccountPage({ onRegistered, onCancel, onError }) {
     confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
-  const [serverMsg, setServerMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const validate = () => {
@@ -41,7 +40,6 @@ export default function CreateAccountPage({ onRegistered, onCancel, onError }) {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setErrors({});
-    setServerMsg("");
   };
 
   const handleSubmit = async (e) => {
@@ -57,13 +55,11 @@ export default function CreateAccountPage({ onRegistered, onCancel, onError }) {
       await axios.post("/users", form);
       onRegistered();
     } catch (err) {
-      if (err.response?.status === 500) {
-        // System error - use onError
-        onError();
-      } else {
-        // Validation error from server - show to user
-        setServerMsg(err.response?.data?.error || "Registration failed.");
-      }
+      console.error("Registration failed:", err);
+      const errorMsg =
+        err.response?.data?.error || "Registration failed. Please try again.";
+      onError(errorMsg);
+      return;
     } finally {
       setSubmitting(false);
     }
@@ -72,17 +68,16 @@ export default function CreateAccountPage({ onRegistered, onCancel, onError }) {
   return (
     <div className="form-container">
       <h2>Create Account</h2>
-      {serverMsg && <div className="server-message">{serverMsg}</div>}
-      <form onSubmit={handleSubmit} noValidate>
+      <form onSubmit={handleSubmit}>
         {[
-          { label: "First Name", name: "firstName", type: "text" },
-          { label: "Last Name", name: "lastName", type: "text" },
-          { label: "Email", name: "email", type: "email" },
-          { label: "Display Name", name: "displayName", type: "text" },
-          { label: "Password", name: "password", type: "password" },
+          { name: "firstName", label: "First Name", type: "text" },
+          { name: "lastName", label: "Last Name", type: "text" },
+          { name: "email", label: "Email", type: "email" },
+          { name: "displayName", label: "Display Name", type: "text" },
+          { name: "password", label: "Password", type: "password" },
           {
-            label: "Confirm Password",
             name: "confirmPassword",
+            label: "Confirm Password",
             type: "password",
           },
         ].map((f) => (
@@ -100,23 +95,30 @@ export default function CreateAccountPage({ onRegistered, onCancel, onError }) {
             )}
           </div>
         ))}
-        <button
-          type="submit"
-          className="button_style button_hover"
-          disabled={submitting}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "15px",
+          }}
         >
-          {submitting ? "Creating…" : "Sign Up"}
-        </button>
+          <button
+            type="submit"
+            className="button_style button_hover full-width"
+            disabled={submitting}
+          >
+            {submitting ? "Creating Account…" : "Sign Up"}
+          </button>
+          <button
+            type="button"
+            className="button_style button_hover"
+            onClick={onCancel}
+          >
+            Back to Login
+          </button>
+        </div>
       </form>
-      <div className="form-footer">
-        <button
-          type="button"
-          className="button_style button_hover"
-          onClick={onCancel}
-        >
-          Back to Login
-        </button>
-      </div>
     </div>
   );
 }

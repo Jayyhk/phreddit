@@ -12,7 +12,6 @@ const Navbar = ({
   currentUser,
   onError,
 }) => {
-  const [error, setError] = useState("");
   const [sortedCommunities, setSortedCommunities] = useState([]);
 
   useEffect(() => {
@@ -30,44 +29,36 @@ const Navbar = ({
 
   const handleCreateCommunity = () => {
     if (!isLoggedIn) {
-      setError("Please log in to create a community");
+      onError("Please log in to create a community");
       return;
     }
     try {
       onCreateCommunity();
-      setError("");
     } catch (err) {
-      setError("Failed to create community. Please try again.");
-      onError();
+      console.error("Failed to create community:", err);
+      const errorMsg =
+        err.response?.data?.error ||
+        "Failed to create community. Please try again.";
+      onError(errorMsg);
+      return;
     }
   };
 
   const handleCommunityClick = (communityId) => {
     try {
       onCommunityClick(communityId);
-      setError("");
     } catch (err) {
-      setError("Failed to load community. Please try again.");
-      onError();
+      console.error("Failed to load community:", err);
+      const errorMsg =
+        err.response?.data?.error ||
+        "Failed to load community. Please try again.";
+      onError(errorMsg);
+      return;
     }
   };
 
   return (
     <nav id="navbar">
-      {error && (
-        <div className="navbar-error">
-          {error}
-          <button
-            className="button_style button_hover"
-            onClick={() => {
-              setError("");
-              onError();
-            }}
-          >
-            Return to Welcome Page
-          </button>
-        </div>
-      )}
       <div id="home_link_container">
         <a
           id="home_link"

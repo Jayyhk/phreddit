@@ -32,7 +32,7 @@ const CommunitySchema = new Schema({
       },
     ],
     required: true,
-    minlength: 1,
+    default: [],
   },
   creator: { type: String, required: true },
 });

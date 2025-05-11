@@ -29,7 +29,7 @@ const CreatePostPage = ({
     return a.name.localeCompare(b.name);
   });
 
-  const handleSubmit = () => {
+  const validateForm = () => {
     let valid = true;
     const newErrors = {
       community: "",
@@ -69,22 +69,33 @@ const CreatePostPage = ({
     }
 
     setErrors(newErrors);
-    if (!valid) return;
+    return valid;
+  };
+
+  const handleSubmit = async () => {
+    // Validate all fields first
+    if (!validateForm()) {
+      return;
+    }
 
     try {
+      // Try to create post
       if (onSubmit) {
-        onSubmit({
-          communityID,
+        await onSubmit({
           title: title.trim(),
           content: content.trim(),
+          communityID: communityID,
           postedBy: currentUser.displayName,
-          selectedLinkFlairID: selectedLinkFlairID || null,
+          selectedLinkFlairID: selectedLinkFlairID,
           newLinkFlair: linkFlairInput.trim() || null,
         });
       }
     } catch (err) {
-      console.error("Failed to submit post:", err);
-      onError();
+      console.error("Failed to create post:", err);
+      const errorMsg =
+        err.response?.data?.error || "Failed to create post. Please try again.";
+      onError(errorMsg);
+      return;
     }
   };
 

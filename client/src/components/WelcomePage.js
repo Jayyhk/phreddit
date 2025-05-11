@@ -38,13 +38,20 @@ export default function WelcomePage({ onLogin, onRegister, onGuest, onError }) {
       await onLogin();
       setServerMsg(res.data.message);
     } catch (err) {
-      if (err.response?.status === 500) {
-        // System error - use onError
-        console.error("Login failed:", err);
-        onError();
+      console.error("Login failed:", err);
+      const errorMsg =
+        err.response?.data?.error || "Login failed. Please try again.";
+
+      // Show error above both fields if both are filled
+      if (form.email && form.password) {
+        setErrors({
+          form: errorMsg,
+        });
       } else {
-        // Validation error from server - show to user
-        setServerMsg(err.response?.data?.error || "Login failed");
+        // Show error under the filled field
+        setErrors({
+          [form.email ? "email" : "password"]: errorMsg,
+        });
       }
     } finally {
       setLoading(false);
@@ -56,6 +63,7 @@ export default function WelcomePage({ onLogin, onRegister, onGuest, onError }) {
       <h2>Log In</h2>
       {serverMsg && <div className="server-message">{serverMsg}</div>}
       <form onSubmit={handleSubmit} noValidate>
+        {errors.form && <div className="error-message">{errors.form}</div>}
         {[
           { name: "email", label: "Email", type: "email" },
           { name: "password", label: "Password", type: "password" },

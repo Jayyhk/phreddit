@@ -72,15 +72,18 @@ const CreateCommunityPage = ({
 
         // If API call failed, show generic error
         if (!success) {
-          setErrors((prev) => ({
-            ...prev,
-            name: "Failed to create community. Please try again.",
-          }));
+          const errorMsg = "Failed to create community. Please try again.";
+          onError(errorMsg);
+          return;
         }
       }
     } catch (err) {
       console.error("Failed to create community:", err);
-      onError();
+      const errorMsg =
+        err.response?.data?.error ||
+        "Failed to create community. Please try again.";
+      onError(errorMsg);
+      return;
     }
   };
 

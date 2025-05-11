@@ -35,7 +35,11 @@ const CreateCommentPage = ({ onSubmit, currentUser, onError }) => {
       }
     } catch (err) {
       console.error("Failed to submit comment:", err);
-      onError();
+      const errorMsg =
+        err.response?.data?.error ||
+        "Failed to submit comment. Please try again.";
+      onError(errorMsg);
+      return;
     }
   };
 

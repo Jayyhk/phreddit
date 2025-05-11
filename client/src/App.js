@@ -15,6 +15,7 @@ import CreatePostPage from "./components/CreatePostPage";
 import CreateCommentPage from "./components/CreateCommentPage";
 import WelcomePage from "./components/WelcomePage";
 import CreateAccountPage from "./components/CreateAccountPage";
+import ErrorBanner from "./components/ErrorBanner";
 
 axios.defaults.baseURL = "http://localhost:8000";
 axios.defaults.withCredentials = true; // send session cookie
@@ -23,13 +24,24 @@ function App() {
   // --- AUTH & VIEW STATE ---
   const [currentUser, setCurrentUser] = useState(null);
   const [viewState, setViewState] = useState({ page: "login" });
+  const [error, setError] = useState("");
   const handleCancelRegister = () => setViewState({ page: "login" });
 
   // --- ERROR HANDLING ---
-  const handleError = () => {
+  const handleError = (errorMsg = "") => {
+    setError(errorMsg);
+  };
+
+  const handleErrorRedirect = () => {
+    setError("");
     setCurrentUser(null);
     setViewState({ page: "login" });
   };
+
+  // Clear error when changing views
+  useEffect(() => {
+    setError("");
+  }, [viewState.page]);
 
   // --- APP DATA STATE ---
   const [sortType, setSortType] = useState("newest");
@@ -162,10 +174,9 @@ function App() {
       setViewState({ page: "login" });
     } catch (err) {
       console.error("Logout failed:", err);
-      // Show error toast to user
-      const errorMessage =
+      const errorMsg =
         err.response?.data?.error || "Failed to logout. Please try again.";
-      alert(errorMessage); // Using alert as a simple fallback, could be replaced with a proper toast component
+      handleError(errorMsg);
     }
   };
 
@@ -256,6 +267,8 @@ function App() {
           getCommentCount={getCommentCount}
           getLinkFlairContent={getLinkFlairContent}
           onError={handleError}
+          currentUser={currentUser}
+          onCommunitiesUpdate={setCommunities}
         />
       ) : (
         <div>Community not found.</div>
@@ -361,14 +374,13 @@ function App() {
 
               // Navigate to the new post
               renderView("post", { postID: newPost._id });
-            } catch (e) {
-              console.error("Failed to create post", e);
-              // Show more specific error message
-              const errorMessage =
-                e.response?.data?.error || e.message || "Failed to create post";
-              alert(
-                `${errorMessage}. Please try again or return to the welcome page.`
-              );
+            } catch (err) {
+              console.error("Failed to create post:", err);
+              const errorMsg =
+                err.response?.data?.error ||
+                err.message ||
+                "Failed to create post. Please try again.";
+              handleError(errorMsg);
             }
           }}
           onError={handleError}
@@ -412,18 +424,18 @@ function App() {
                   ...prev,
                   [viewState.postID]: new Date(ld.data.latestCommentDate),
                 }));
-              } catch (e) {
-                console.error("Failed to refresh latest date", e);
+              } catch (err) {
+                console.error("Failed to refresh latest date:", err);
               }
 
               renderView("post", { postID: viewState.postID });
-            } catch (e) {
-              console.error("Failed to add comment", e);
-              const errorMessage =
-                e.response?.data?.error || e.message || "Failed to add comment";
-              alert(
-                `${errorMessage}. Please try again or return to the welcome page.`
-              );
+            } catch (err) {
+              console.error("Failed to add comment:", err);
+              const errorMsg =
+                err.response?.data?.error ||
+                err.message ||
+                "Failed to add comment. Please try again.";
+              handleError(errorMsg);
             }
           }}
           onError={handleError}
@@ -458,27 +470,34 @@ function App() {
   if (!currentUser) {
     if (viewState.page === "register") {
       return (
-        <CreateAccountPage
-          onRegistered={handleRegistered}
-          onCancel={handleCancelRegister}
-          onError={handleError}
-        />
+        <>
+          <ErrorBanner error={error} onError={() => handleError()} />
+          <CreateAccountPage
+            onRegistered={handleRegistered}
+            onCancel={handleCancelRegister}
+            onError={handleError}
+          />
+        </>
       );
     }
     return (
-      <WelcomePage
-        onLogin={handleLogin}
-        onRegister={handleRegisterNav}
-        onGuest={handleGuest}
-        onError={handleError}
-      />
+      <>
+        <ErrorBanner error={error} onError={() => handleError()} />
+        <WelcomePage
+          onLogin={handleLogin}
+          onRegister={handleRegisterNav}
+          onGuest={handleGuest}
+          onError={handleError}
+        />
+      </>
     );
   }
 
   return (
     <div id="wrapper">
+      <ErrorBanner error={error} onError={handleErrorRedirect} />
       <Banner
-        onTitleClick={handleError}
+        onTitleClick={handleErrorRedirect}
         onSearch={(q) => renderView("search", { query: q })}
         onCreatePost={() => renderView("create-post")}
         isCreatePostActive={viewState.page === "create-post"}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { formatTimeDelta, parseHyperlinks } from "./Helpers";
 
 const HomePage = ({
@@ -12,7 +12,6 @@ const HomePage = ({
   currentUser,
   onError,
 }) => {
-  const [error, setError] = useState("");
   const postCount = posts.length;
   const postsLabel = postCount === 1 ? "Post" : "Posts";
   const resultsLabel = postCount === 1 ? "result" : "results";
@@ -34,20 +33,24 @@ const HomePage = ({
   const handleSortChange = (sortType) => {
     try {
       onSortChange && onSortChange(sortType);
-      setError("");
     } catch (err) {
-      setError("Failed to sort posts. Please try again.");
-      onError();
+      console.error("Failed to sort posts:", err);
+      const errorMsg =
+        err.response?.data?.error || "Failed to sort posts. Please try again.";
+      onError(errorMsg);
+      return;
     }
   };
 
   const handlePostClick = (postId) => {
     try {
       onPostClick && onPostClick(postId);
-      setError("");
     } catch (err) {
-      setError("Failed to load post. Please try again.");
-      onError();
+      console.error("Failed to load post:", err);
+      const errorMsg =
+        err.response?.data?.error || "Failed to load post. Please try again.";
+      onError(errorMsg);
+      return;
     }
   };
 
@@ -106,20 +109,6 @@ const HomePage = ({
 
   return (
     <div>
-      {error && (
-        <div className="banner-error">
-          {error}
-          <button
-            className="button_style button_hover"
-            onClick={() => {
-              setError("");
-              onError();
-            }}
-          >
-            Return to Welcome Page
-          </button>
-        </div>
-      )}
       <div id="home_header">
         <div id="home_header_top">
           <h2>

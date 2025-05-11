@@ -661,12 +661,6 @@ router.post("/communities/:id/leave", async (req, res) => {
       return res.status(401).json({ error: "User not found" });
     }
 
-    if (community.creator === user.displayName) {
-      return res
-        .status(400)
-        .json({ error: "Creator cannot leave their community" });
-    }
-
     if (!community.members.includes(user.displayName)) {
       return res.status(400).json({ error: "Not a member of this community" });
     }

@@ -11,41 +11,47 @@ const Banner = ({
   onError,
 }) => {
   const [searchText, setSearchText] = useState("");
-  const [error, setError] = useState("");
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && searchText.trim() !== "") {
       try {
         onSearch && onSearch(searchText);
-        setError("");
       } catch (err) {
-        setError("Failed to perform search. Please try again.");
-        onError();
+        console.error("Failed to perform search:", err);
+        const errorMsg =
+          err.response?.data?.error ||
+          "Failed to perform search. Please try again.";
+        onError(errorMsg);
+        return;
       }
     }
   };
 
   const handleCreatePost = () => {
     if (!isLoggedIn) {
-      setError("Please log in to create a post");
+      onError("Please log in to create a post");
       return;
     }
     try {
       onCreatePost && onCreatePost();
-      setError("");
     } catch (err) {
-      setError("Failed to create post. Please try again.");
-      onError();
+      console.error("Failed to create post:", err);
+      const errorMsg =
+        err.response?.data?.error || "Failed to create post. Please try again.";
+      onError(errorMsg);
+      return;
     }
   };
 
   const handleLogout = async () => {
     try {
       await onLogout();
-      setError("");
     } catch (err) {
-      setError("Failed to logout. Please try again.");
-      onError();
+      console.error("Failed to logout:", err);
+      const errorMsg =
+        err.response?.data?.error || "Failed to logout. Please try again.";
+      onError(errorMsg);
+      return;
     }
   };
 
@@ -55,20 +61,6 @@ const Banner = ({
 
   return (
     <div id="banner">
-      {error && (
-        <div className="banner-error">
-          {error}
-          <button
-            className="button_style button_hover"
-            onClick={() => {
-              setError("");
-              onError();
-            }}
-          >
-            Return to Welcome Page
-          </button>
-        </div>
-      )}
       <a
         id="banner_title"
         href="#/"
