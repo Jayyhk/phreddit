@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const Navbar = ({
   communities,
@@ -9,8 +9,23 @@ const Navbar = ({
   isCreateCommunityActive,
   activeCommunityID,
   isLoggedIn,
+  currentUser,
 }) => {
   const [error, setError] = useState("");
+  const [sortedCommunities, setSortedCommunities] = useState([]);
+
+  useEffect(() => {
+    const sorted = [...communities].sort((a, b) => {
+      // If user is logged in, prioritize joined communities
+      if (isLoggedIn) {
+        if (a.isMember && !b.isMember) return -1;
+        if (!a.isMember && b.isMember) return 1;
+      }
+      // Then sort alphabetically
+      return a.name.localeCompare(b.name);
+    });
+    setSortedCommunities(sorted);
+  }, [communities, isLoggedIn, currentUser]);
 
   const handleCreateCommunity = () => {
     if (!isLoggedIn) {
@@ -74,13 +89,13 @@ const Navbar = ({
         </button>
       </div>
       <ul id="community_list">
-        {communities.map((community) => (
+        {sortedCommunities.map((community) => (
           <li key={community._id}>
             <a
               href="#/"
               className={`community_link ${
                 community._id === activeCommunityID ? "active" : ""
-              }`}
+              } ${community.isMember ? "joined" : ""}`}
               onClick={() => handleCommunityClick(community._id)}
             >
               {community.name}

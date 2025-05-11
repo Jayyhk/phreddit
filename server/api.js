@@ -131,11 +131,24 @@ router.get("/communities", async (req, res) => {
     const communities = await Community.find();
 
     if (req.session.userID) {
-      // Add isMember flag for logged-in users
-      const communitiesWithMembership = communities.map((community) => ({
-        ...community.toObject(),
-        isMember: community.members.includes(req.session.userID.toString()),
-      }));
+      // Get user's display name
+      const user = await User.findById(req.session.userID);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Add isMember flag for logged-in users using display name
+      const communitiesWithMembership = communities.map((community) => {
+        const communityObj = community.toObject();
+        const isMember =
+          Array.isArray(communityObj.members) &&
+          communityObj.members.includes(user.displayName);
+        return {
+          ...communityObj,
+          isMember,
+        };
+      });
+
       res.json(communitiesWithMembership);
     } else {
       res.json(communities);
@@ -243,11 +256,17 @@ router.post("/communities", async (req, res) => {
         .json({ error: "Name and description are required" });
     }
 
+    // Get user's display name
+    const user = await User.findById(req.session.userID);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
     const newCommunity = new Community({
       name,
       description,
-      creator: req.session.userID.toString(),
-      members: [req.session.userID.toString()], // Creator is automatically a member
+      creator: user.displayName,
+      members: [user.displayName], // Creator is automatically a member
     });
 
     const savedCommunity = await newCommunity.save();
@@ -595,14 +614,19 @@ router.post("/communities/:id/join", async (req, res) => {
       return res.status(404).json({ error: "Community not found" });
     }
 
-    const userId = req.session.userID.toString();
-    if (community.members.includes(userId)) {
+    // Get user's display name
+    const user = await User.findById(req.session.userID);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    if (community.members.includes(user.displayName)) {
       return res
         .status(400)
         .json({ error: "Already a member of this community" });
     }
 
-    community.members.push(userId);
+    community.members.push(user.displayName);
     await community.save();
     res.json({ message: "Successfully joined community" });
   } catch (err) {
@@ -624,18 +648,25 @@ router.post("/communities/:id/leave", async (req, res) => {
       return res.status(404).json({ error: "Community not found" });
     }
 
-    const userId = req.session.userID.toString();
-    if (community.creator === userId) {
+    // Get user's display name
+    const user = await User.findById(req.session.userID);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    if (community.creator === user.displayName) {
       return res
         .status(400)
         .json({ error: "Creator cannot leave their community" });
     }
 
-    if (!community.members.includes(userId)) {
+    if (!community.members.includes(user.displayName)) {
       return res.status(400).json({ error: "Not a member of this community" });
     }
 
-    community.members = community.members.filter((id) => id !== userId);
+    community.members = community.members.filter(
+      (name) => name !== user.displayName
+    );
     await community.save();
     res.json({ message: "Successfully left community" });
   } catch (err) {
@@ -652,9 +683,14 @@ router.get("/users/communities", async (req, res) => {
         .json({ error: "Must be logged in to view your communities" });
     }
 
-    const userId = req.session.userID.toString();
+    // Get user's display name
+    const user = await User.findById(req.session.userID);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
     const communities = await Community.find({
-      members: userId,
+      members: user.displayName,
     });
 
     res.json(communities);

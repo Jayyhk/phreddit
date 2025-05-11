@@ -42,8 +42,14 @@ function App() {
     if (!currentUser) return;
     axios
       .get("/communities")
-      .then((r) => setCommunities(r.data))
-      .catch(console.error);
+      .then((r) => {
+        setCommunities(r.data);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch communities:", err);
+        // Show error to user
+        alert("Failed to load communities. Please try refreshing the page.");
+      });
     axios
       .get("/posts")
       .then((r) => setPosts(r.data))
