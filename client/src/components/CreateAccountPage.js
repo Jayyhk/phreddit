@@ -74,7 +74,11 @@ export default function CreateAccountPage({ onRegistered, onCancel }) {
           { label: "Email", name: "email", type: "email" },
           { label: "Display Name", name: "displayName", type: "text" },
           { label: "Password", name: "password", type: "password" },
-          { label: "Confirm Password", name: "confirmPassword", type: "password" },
+          {
+            label: "Confirm Password",
+            name: "confirmPassword",
+            type: "password",
+          },
         ].map((f) => (
           <div className="form-field" key={f.name}>
             <label htmlFor={f.name}>{f.label}</label>
@@ -99,7 +103,7 @@ export default function CreateAccountPage({ onRegistered, onCancel }) {
         </button>
       </form>
       {/* Back button to navigate to login */}
-      <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+      <div style={{ marginTop: "1rem", textAlign: "center" }}>
         <button
           type="button"
           className="button_style button_hover"

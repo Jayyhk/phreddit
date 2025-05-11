@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { validateHyperlinks } from "./Helpers";
 
-const CreateCommentPage = ({ onSubmit }) => {
+const CreateCommentPage = ({ onSubmit, currentUser }) => {
   const [content, setContent] = useState("");
-  const [username, setUsername] = useState("");
-  const [errors, setErrors] = useState({ content: "", username: "" });
+  const [errors, setErrors] = useState({ content: "" });
 
   const handleSubmit = () => {
     let valid = true;
-    const newErrors = { content: "", username: "" };
+    const newErrors = { content: "" };
 
     if (content.trim() === "") {
       newErrors.content = "Comment content is required.";
@@ -24,20 +23,13 @@ const CreateCommentPage = ({ onSubmit }) => {
       }
     }
 
-    if (username.trim() === "") {
-      newErrors.username = "Creator username is required.";
-      valid = false;
-    }
-
     setErrors(newErrors);
     if (!valid) return;
 
     if (onSubmit) {
       onSubmit({
         content: content.trim(),
-        // commentIDs: [], // set by DB
-        commentedBy: username.trim(),
-        // commentedDate: new Date(), // set by DB
+        commentedBy: currentUser.displayName,
       });
     }
   };
@@ -58,27 +50,15 @@ const CreateCommentPage = ({ onSubmit }) => {
           <div className="create_comment_error">{errors.content}</div>
         )}
       </div>
-      <div id="create_comment_username_container">
-        <div id="create_comment_username">Creator Username (required)</div>
-        <input
-          id="create_comment_username_input"
-          type="text"
-          placeholder="Enter Creator Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        {errors.username && (
-          <div className="create_comment_error">{errors.username}</div>
-        )}
+      <div style={{ marginTop: "20px" }}>
+        <button
+          className="button_style button_hover"
+          id="post_comment"
+          onClick={handleSubmit}
+        >
+          Submit Comment
+        </button>
       </div>
-      <button
-        className="button_style button_hover"
-        id="post_comment"
-        onClick={handleSubmit}
-      >
-        Submit Comment
-      </button>
     </div>
   );
 };

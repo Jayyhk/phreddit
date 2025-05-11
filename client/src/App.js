@@ -349,6 +349,7 @@ function App() {
     case "create-comment":
       mainContent = (
         <CreateCommentPage
+          currentUser={currentUser}
           onSubmit={async (data) => {
             try {
               const r = await axios.post("/comments", {
@@ -388,6 +389,11 @@ function App() {
               renderView("post", { postID: viewState.postID });
             } catch (e) {
               console.error("Failed to add comment", e);
+              const errorMessage =
+                e.response?.data?.error || e.message || "Failed to add comment";
+              alert(
+                `${errorMessage}. Please try again or return to the welcome page.`
+              );
             }
           }}
         />
