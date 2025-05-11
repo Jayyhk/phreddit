@@ -25,6 +25,12 @@ function App() {
   const [viewState, setViewState] = useState({ page: "login" });
   const handleCancelRegister = () => setViewState({ page: "login" });
 
+  // --- ERROR HANDLING ---
+  const handleError = () => {
+    setCurrentUser(null);
+    setViewState({ page: "login" });
+  };
+
   // --- APP DATA STATE ---
   const [sortType, setSortType] = useState("newest");
   const [communities, setCommunities] = useState([]);
@@ -47,21 +53,21 @@ function App() {
       })
       .catch((err) => {
         console.error("Failed to fetch communities:", err);
-        setCurrentUser(null); // Return to welcome page
+        handleError();
       });
     axios
       .get("/posts")
       .then((r) => setPosts(r.data))
       .catch((err) => {
         console.error("Failed to fetch posts:", err);
-        setCurrentUser(null); // Return to welcome page
+        handleError();
       });
     axios
       .get("/linkflairs")
       .then((r) => setLinkFlairs(r.data))
       .catch((err) => {
         console.error("Failed to fetch link flairs:", err);
-        setCurrentUser(null); // Return to welcome page
+        handleError();
       });
   }, [currentUser]);
 
@@ -76,7 +82,7 @@ function App() {
         )
         .catch((err) => {
           console.error("Failed to fetch comment count:", err);
-          setCurrentUser(null); // Return to welcome page
+          handleError();
         })
     );
   }, [posts, currentUser]);
@@ -95,7 +101,7 @@ function App() {
         )
         .catch((err) => {
           console.error("Failed to fetch latest comment date:", err);
-          setCurrentUser(null); // Return to welcome page
+          handleError();
         })
     );
   }, [posts, currentUser]);
@@ -109,14 +115,14 @@ function App() {
         .then((r) => setCurrentPost(r.data))
         .catch((err) => {
           console.error("Failed to fetch post:", err);
-          setCurrentUser(null); // Return to welcome page
+          handleError();
         });
       axios
         .get(`/posts/${pid}/comments/all`)
         .then((r) => setCurrentComments(r.data))
         .catch((err) => {
           console.error("Failed to fetch comments:", err);
-          setCurrentUser(null); // Return to welcome page
+          handleError();
         });
       const comm = communities.find((c) =>
         c.postIDs.map((id) => id.toString()).includes(pid)
@@ -133,7 +139,7 @@ function App() {
         .then((r) => setSearchResults(r.data))
         .catch((err) => {
           console.error("Failed to search:", err);
-          setCurrentUser(null); // Return to welcome page
+          handleError();
         });
     }
   }, [viewState.page, viewState.query]);
@@ -230,6 +236,7 @@ function App() {
           getCommentCount={getCommentCount}
           getLinkFlairContent={getLinkFlairContent}
           currentUser={currentUser}
+          onError={handleError}
         />
       );
       break;
@@ -248,6 +255,7 @@ function App() {
           onSortChange={setSortType}
           getCommentCount={getCommentCount}
           getLinkFlairContent={getLinkFlairContent}
+          onError={handleError}
         />
       ) : (
         <div>Community not found.</div>
@@ -271,6 +279,7 @@ function App() {
             })
           }
           getLinkFlairContent={getLinkFlairContent}
+          onError={handleError}
         />
       ) : (
         <div>Loading post…</div>
@@ -295,6 +304,7 @@ function App() {
               return false;
             }
           }}
+          onError={handleError}
         />
       );
       break;
@@ -361,6 +371,7 @@ function App() {
               );
             }
           }}
+          onError={handleError}
         />
       );
       break;
@@ -415,6 +426,7 @@ function App() {
               );
             }
           }}
+          onError={handleError}
         />
       );
       break;
@@ -430,6 +442,7 @@ function App() {
           getLinkFlairContent={getLinkFlairContent}
           searchQuery={viewState.query}
           currentUser={currentUser}
+          onError={handleError}
         />
       );
       break;
@@ -448,6 +461,7 @@ function App() {
         <CreateAccountPage
           onRegistered={handleRegistered}
           onCancel={handleCancelRegister}
+          onError={handleError}
         />
       );
     }
@@ -456,6 +470,7 @@ function App() {
         onLogin={handleLogin}
         onRegister={handleRegisterNav}
         onGuest={handleGuest}
+        onError={handleError}
       />
     );
   }
@@ -463,16 +478,14 @@ function App() {
   return (
     <div id="wrapper">
       <Banner
-        onTitleClick={() => {
-          setCurrentUser(null);
-          setViewState({ page: "login" });
-        }}
+        onTitleClick={handleError}
         onSearch={(q) => renderView("search", { query: q })}
         onCreatePost={() => renderView("create-post")}
         isCreatePostActive={viewState.page === "create-post"}
         onLogout={handleLogout}
         isLoggedIn={!!currentUser && !currentUser.guest}
         currentUser={currentUser}
+        onError={handleError}
       />
       <Navbar
         communities={communities}
@@ -486,6 +499,7 @@ function App() {
         activeCommunityID={activeCommunityID}
         isLoggedIn={!!currentUser && !currentUser.guest}
         currentUser={currentUser}
+        onError={handleError}
       />
       <div id="main">{mainContent}</div>
     </div>

@@ -10,6 +10,7 @@ const HomePage = ({
   getLinkFlairContent,
   searchQuery,
   currentUser,
+  onError,
 }) => {
   const [error, setError] = useState("");
   const postCount = posts.length;
@@ -36,6 +37,7 @@ const HomePage = ({
       setError("");
     } catch (err) {
       setError("Failed to sort posts. Please try again.");
+      onError();
     }
   };
 
@@ -45,6 +47,7 @@ const HomePage = ({
       setError("");
     } catch (err) {
       setError("Failed to load post. Please try again.");
+      onError();
     }
   };
 
@@ -103,7 +106,20 @@ const HomePage = ({
 
   return (
     <div>
-      {error && <div className="banner-error">{error}</div>}
+      {error && (
+        <div className="banner-error">
+          {error}
+          <button
+            className="button_style button_hover"
+            onClick={() => {
+              setError("");
+              onError();
+            }}
+          >
+            Return to Welcome Page
+          </button>
+        </div>
+      )}
       <div id="home_header">
         <div id="home_header_top">
           <h2>
@@ -158,23 +174,28 @@ const HomePage = ({
             {otherPosts.map(renderPost)}
           </div>
         )}
-        {searchQuery && !currentUser?.guest && (
+        {!searchQuery && currentUser?.guest && (
+          <div className="posts-section">{posts.map(renderPost)}</div>
+        )}
+        {searchQuery && (
           <>
-            {userCommunityPosts.length > 0 && (
+            {!currentUser?.guest && userCommunityPosts.length > 0 && (
               <div className="posts-section">
                 <h3 className="section-header">Your Communities</h3>
                 {userCommunityPosts.map(renderPost)}
               </div>
             )}
-            {otherPosts.length > 0 && (
+            {!currentUser?.guest && otherPosts.length > 0 && (
               <div className="posts-section">
                 <h3 className="section-header">Other Communities</h3>
                 {otherPosts.map(renderPost)}
               </div>
             )}
+            {currentUser?.guest && (
+              <div className="posts-section">{posts.map(renderPost)}</div>
+            )}
           </>
         )}
-        {searchQuery && currentUser?.guest && posts.map(renderPost)}
       </div>
     </div>
   );

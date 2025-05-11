@@ -5,7 +5,7 @@ import axios from "axios";
 
 axios.defaults.withCredentials = true;
 
-export default function WelcomePage({ onLogin, onRegister, onGuest }) {
+export default function WelcomePage({ onLogin, onRegister, onGuest, onError }) {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [serverMsg, setServerMsg] = useState("");
@@ -38,7 +38,14 @@ export default function WelcomePage({ onLogin, onRegister, onGuest }) {
       await onLogin();
       setServerMsg(res.data.message);
     } catch (err) {
-      setServerMsg(err.response?.data?.error || "Login failed");
+      if (err.response?.status === 500) {
+        // System error - use onError
+        console.error("Login failed:", err);
+        onError();
+      } else {
+        // Validation error from server - show to user
+        setServerMsg(err.response?.data?.error || "Login failed");
+      }
     } finally {
       setLoading(false);
     }

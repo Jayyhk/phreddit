@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { formatTimeDelta, parseHyperlinks } from "./Helpers";
 
 const CommunityPage = ({
@@ -8,12 +8,48 @@ const CommunityPage = ({
   onSortChange,
   getCommentCount,
   getLinkFlairContent,
+  onError,
 }) => {
+  const [error, setError] = useState("");
   const postCount = community.postIDs.length;
   const memberCount = community.members.length;
 
+  const handleSortChange = (sortType) => {
+    try {
+      onSortChange && onSortChange(sortType);
+      setError("");
+    } catch (err) {
+      setError("Failed to sort posts. Please try again.");
+      onError();
+    }
+  };
+
+  const handlePostClick = (postId) => {
+    try {
+      onPostClick && onPostClick(postId);
+      setError("");
+    } catch (err) {
+      setError("Failed to load post. Please try again.");
+      onError();
+    }
+  };
+
   return (
     <div>
+      {error && (
+        <div className="banner-error">
+          {error}
+          <button
+            className="button_style button_hover"
+            onClick={() => {
+              setError("");
+              onError();
+            }}
+          >
+            Return to Welcome Page
+          </button>
+        </div>
+      )}
       <div id="community_header">
         <div id="community_header_top">
           <h2 id="community_name">{community.name}</h2>
@@ -21,21 +57,21 @@ const CommunityPage = ({
             <button
               className="button_style button_hover sort_button"
               id="community_newest"
-              onClick={() => onSortChange && onSortChange("newest")}
+              onClick={() => handleSortChange("newest")}
             >
               Newest
             </button>
             <button
               className="button_style button_hover sort_button"
               id="community_oldest"
-              onClick={() => onSortChange && onSortChange("oldest")}
+              onClick={() => handleSortChange("oldest")}
             >
               Oldest
             </button>
             <button
               className="button_style button_hover sort_button"
               id="community_active"
-              onClick={() => onSortChange && onSortChange("active")}
+              onClick={() => handleSortChange("active")}
             >
               Active
             </button>
@@ -48,7 +84,7 @@ const CommunityPage = ({
           }}
         />
         <div id="community_date_created">
-          Created {formatTimeDelta(community.startDate)}
+          Created by {community.creator} {formatTimeDelta(community.startDate)}
         </div>
         <div id="community_stats">
           <div className="community_stat">
@@ -69,7 +105,7 @@ const CommunityPage = ({
             <div
               key={post._id}
               className="post"
-              onClick={() => onPostClick && onPostClick(post._id)}
+              onClick={() => handlePostClick(post._id)}
               style={{ cursor: "pointer" }}
             >
               <div className="post_header">
@@ -93,6 +129,12 @@ const CommunityPage = ({
                 }}
               />
               <div className="post_footer">
+                <span className="vote-count">
+                  {post.upvoters.length - post.downvoters.length}{" "}
+                  {post.upvoters.length - post.downvoters.length === 1
+                    ? "Vote"
+                    : "Votes"}
+                </span>
                 <span className="view_count">
                   {post.views} {viewString}
                 </span>

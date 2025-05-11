@@ -10,6 +10,7 @@ const Navbar = ({
   activeCommunityID,
   isLoggedIn,
   currentUser,
+  onError,
 }) => {
   const [error, setError] = useState("");
   const [sortedCommunities, setSortedCommunities] = useState([]);
@@ -37,6 +38,7 @@ const Navbar = ({
       setError("");
     } catch (err) {
       setError("Failed to create community. Please try again.");
+      onError();
     }
   };
 
@@ -46,6 +48,7 @@ const Navbar = ({
       setError("");
     } catch (err) {
       setError("Failed to load community. Please try again.");
+      onError();
     }
   };
 
@@ -58,7 +61,7 @@ const Navbar = ({
             className="button_style button_hover"
             onClick={() => {
               setError("");
-              onHomeClick();
+              onError();
             }}
           >
             Return to Welcome Page

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-export default function CreateAccountPage({ onRegistered, onCancel }) {
+export default function CreateAccountPage({ onRegistered, onCancel, onError }) {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -57,7 +57,13 @@ export default function CreateAccountPage({ onRegistered, onCancel }) {
       await axios.post("/users", form);
       onRegistered();
     } catch (err) {
-      setServerMsg(err.response?.data?.error || "Registration failed.");
+      if (err.response?.status === 500) {
+        // System error - use onError
+        onError();
+      } else {
+        // Validation error from server - show to user
+        setServerMsg(err.response?.data?.error || "Registration failed.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -102,8 +108,7 @@ export default function CreateAccountPage({ onRegistered, onCancel }) {
           {submitting ? "Creating…" : "Sign Up"}
         </button>
       </form>
-      {/* Back button to navigate to login */}
-      <div style={{ marginTop: "1rem", textAlign: "center" }}>
+      <div className="form-footer">
         <button
           type="button"
           className="button_style button_hover"

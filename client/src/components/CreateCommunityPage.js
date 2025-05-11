@@ -1,7 +1,12 @@
 import React, { useState } from "react";
 import { validateHyperlinks } from "./Helpers";
 
-const CreateCommunityPage = ({ onEngender, currentUser, communities }) => {
+const CreateCommunityPage = ({
+  onEngender,
+  currentUser,
+  communities,
+  onError,
+}) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState({
@@ -56,21 +61,26 @@ const CreateCommunityPage = ({ onEngender, currentUser, communities }) => {
       return;
     }
 
-    // Try to create community
-    if (onEngender) {
-      const success = await onEngender({
-        name: name.trim(),
-        description: description.trim(),
-        members: [currentUser.displayName],
-      });
+    try {
+      // Try to create community
+      if (onEngender) {
+        const success = await onEngender({
+          name: name.trim(),
+          description: description.trim(),
+          members: [currentUser.displayName],
+        });
 
-      // If API call failed, show generic error
-      if (!success) {
-        setErrors((prev) => ({
-          ...prev,
-          name: "Failed to create community. Please try again.",
-        }));
+        // If API call failed, show generic error
+        if (!success) {
+          setErrors((prev) => ({
+            ...prev,
+            name: "Failed to create community. Please try again.",
+          }));
+        }
       }
+    } catch (err) {
+      console.error("Failed to create community:", err);
+      onError();
     }
   };
 

@@ -8,6 +8,7 @@ const Banner = ({
   onLogout,
   isLoggedIn,
   currentUser,
+  onError,
 }) => {
   const [searchText, setSearchText] = useState("");
   const [error, setError] = useState("");
@@ -18,7 +19,8 @@ const Banner = ({
         onSearch && onSearch(searchText);
         setError("");
       } catch (err) {
-        setError("Search failed. Please try again.");
+        setError("Failed to perform search. Please try again.");
+        onError();
       }
     }
   };
@@ -33,6 +35,7 @@ const Banner = ({
       setError("");
     } catch (err) {
       setError("Failed to create post. Please try again.");
+      onError();
     }
   };
 
@@ -41,7 +44,8 @@ const Banner = ({
       await onLogout();
       setError("");
     } catch (err) {
-      setError("Logout failed. Please try again.");
+      setError("Failed to logout. Please try again.");
+      onError();
     }
   };
 
@@ -58,7 +62,7 @@ const Banner = ({
             className="button_style button_hover"
             onClick={() => {
               setError("");
-              onTitleClick();
+              onError();
             }}
           >
             Return to Welcome Page

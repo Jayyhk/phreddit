@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { validateHyperlinks } from "./Helpers";
 
-const CreateCommentPage = ({ onSubmit, currentUser }) => {
+const CreateCommentPage = ({ onSubmit, currentUser, onError }) => {
   const [content, setContent] = useState("");
   const [errors, setErrors] = useState({ content: "" });
 
@@ -26,11 +26,16 @@ const CreateCommentPage = ({ onSubmit, currentUser }) => {
     setErrors(newErrors);
     if (!valid) return;
 
-    if (onSubmit) {
-      onSubmit({
-        content: content.trim(),
-        commentedBy: currentUser.displayName,
-      });
+    try {
+      if (onSubmit) {
+        onSubmit({
+          content: content.trim(),
+          commentedBy: currentUser.displayName,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to submit comment:", err);
+      onError();
     }
   };
 

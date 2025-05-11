@@ -1,7 +1,13 @@
 import React, { useState } from "react";
 import { validateHyperlinks } from "./Helpers";
 
-const CreatePostPage = ({ communities, linkFlairs, onSubmit, currentUser }) => {
+const CreatePostPage = ({
+  communities,
+  linkFlairs,
+  onSubmit,
+  currentUser,
+  onError,
+}) => {
   const [communityID, setCommunityID] = useState("");
   const [title, setTitle] = useState("");
   const [selectedLinkFlairID, setSelectedLinkFlairID] = useState("");
@@ -65,15 +71,20 @@ const CreatePostPage = ({ communities, linkFlairs, onSubmit, currentUser }) => {
     setErrors(newErrors);
     if (!valid) return;
 
-    if (onSubmit) {
-      onSubmit({
-        communityID,
-        title: title.trim(),
-        content: content.trim(),
-        postedBy: currentUser.displayName,
-        selectedLinkFlairID: selectedLinkFlairID || null,
-        newLinkFlair: linkFlairInput.trim() || null,
-      });
+    try {
+      if (onSubmit) {
+        onSubmit({
+          communityID,
+          title: title.trim(),
+          content: content.trim(),
+          postedBy: currentUser.displayName,
+          selectedLinkFlairID: selectedLinkFlairID || null,
+          newLinkFlair: linkFlairInput.trim() || null,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to submit post:", err);
+      onError();
     }
   };
 
