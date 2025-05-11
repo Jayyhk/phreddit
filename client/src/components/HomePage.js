@@ -153,7 +153,7 @@ const HomePage = ({
           !currentUser?.guest &&
           userCommunityPosts.length > 0 && (
             <div className="posts-section">
-              <h3 className="section-header">Your Communities</h3>
+              <h3 className="section-header">Joined Communities</h3>
               {userCommunityPosts.map(renderPost)}
             </div>
           )}
@@ -170,7 +170,7 @@ const HomePage = ({
           <>
             {!currentUser?.guest && userCommunityPosts.length > 0 && (
               <div className="posts-section">
-                <h3 className="section-header">Your Communities</h3>
+                <h3 className="section-header">Joined Communities</h3>
                 {userCommunityPosts.map(renderPost)}
               </div>
             )}

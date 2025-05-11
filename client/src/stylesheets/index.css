@@ -227,6 +227,21 @@ select option {
   margin-bottom: 10px;
 }
 
+.community-section-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dark-text-color);
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--delimiter-color);
+  text-align: left;
+}
+
+.community-section-header:last-child {
+  padding-top: 0;
+  padding-bottom: 5px;
+}
+
 #community_list li a {
   font-size: 14px;
   color: var(--dark-text-color);

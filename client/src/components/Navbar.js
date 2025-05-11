@@ -57,6 +57,10 @@ const Navbar = ({
     }
   };
 
+  // Group communities into joined and other
+  const joinedCommunities = sortedCommunities.filter((c) => c.isMember);
+  const otherCommunities = sortedCommunities.filter((c) => !c.isMember);
+
   return (
     <nav id="navbar">
       <div id="home_link_container">
@@ -83,19 +87,56 @@ const Navbar = ({
         </button>
       </div>
       <ul id="community_list">
-        {sortedCommunities.map((community) => (
-          <li key={community._id}>
-            <a
-              href="#/"
-              className={`community_link ${
-                community._id === activeCommunityID ? "active" : ""
-              } ${community.isMember ? "joined" : ""}`}
-              onClick={() => handleCommunityClick(community._id)}
-            >
-              {community.name}
-            </a>
-          </li>
-        ))}
+        {isLoggedIn && joinedCommunities.length > 0 && (
+          <>
+            <li className="community-section-header">Joined Communities</li>
+            {joinedCommunities.map((community) => (
+              <li key={community._id}>
+                <a
+                  href="#/"
+                  className={`community_link ${
+                    community._id === activeCommunityID ? "active" : ""
+                  } joined`}
+                  onClick={() => handleCommunityClick(community._id)}
+                >
+                  {community.name}
+                </a>
+              </li>
+            ))}
+          </>
+        )}
+        {isLoggedIn && otherCommunities.length > 0 && (
+          <>
+            <li className="community-section-header">Other Communities</li>
+            {otherCommunities.map((community) => (
+              <li key={community._id}>
+                <a
+                  href="#/"
+                  className={`community_link ${
+                    community._id === activeCommunityID ? "active" : ""
+                  }`}
+                  onClick={() => handleCommunityClick(community._id)}
+                >
+                  {community.name}
+                </a>
+              </li>
+            ))}
+          </>
+        )}
+        {!isLoggedIn &&
+          sortedCommunities.map((community) => (
+            <li key={community._id}>
+              <a
+                href="#/"
+                className={`community_link ${
+                  community._id === activeCommunityID ? "active" : ""
+                }`}
+                onClick={() => handleCommunityClick(community._id)}
+              >
+                {community.name}
+              </a>
+            </li>
+          ))}
       </ul>
     </nav>
   );
