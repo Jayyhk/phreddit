@@ -261,6 +261,8 @@ function App() {
     case "create-community":
       mainContent = (
         <CreateCommunityPage
+          currentUser={currentUser}
+          communities={communities}
           onEngender={async (data) => {
             try {
               const r = await axios.post("/communities", data);
@@ -268,8 +270,10 @@ function App() {
               const communitiesResponse = await axios.get("/communities");
               setCommunities(communitiesResponse.data);
               renderView("community", { communityID: r.data._id });
+              return true;
             } catch (e) {
               console.error("Failed to create community", e);
+              return false;
             }
           }}
         />

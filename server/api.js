@@ -256,6 +256,12 @@ router.post("/communities", async (req, res) => {
         .json({ error: "Name and description are required" });
     }
 
+    // Check if community name already exists
+    const existingCommunity = await Community.findOne({ name: name.trim() });
+    if (existingCommunity) {
+      return res.status(400).json({ error: "Community name already taken" });
+    }
+
     // Get user's display name
     const user = await User.findById(req.session.userID);
     if (!user) {
@@ -263,8 +269,8 @@ router.post("/communities", async (req, res) => {
     }
 
     const newCommunity = new Community({
-      name,
-      description,
+      name: name.trim(),
+      description: description.trim(),
       creator: user.displayName,
       members: [user.displayName], // Creator is automatically a member
     });
@@ -272,6 +278,7 @@ router.post("/communities", async (req, res) => {
     const savedCommunity = await newCommunity.save();
     res.status(201).json(savedCommunity);
   } catch (err) {
+    console.error("Error creating community:", err);
     res.status(500).json({ error: err.message });
   }
 });

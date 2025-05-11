@@ -1,59 +1,76 @@
 import React, { useState } from "react";
 import { validateHyperlinks } from "./Helpers";
 
-const CreateCommunityPage = ({ onEngender }) => {
+const CreateCommunityPage = ({ onEngender, currentUser, communities }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [username, setUsername] = useState("");
   const [errors, setErrors] = useState({
     name: "",
     description: "",
-    username: "",
   });
 
-  const handleSubmit = () => {
-    let valid = true;
-    const newErrors = { name: "", description: "", username: "" };
+  const validateForm = () => {
+    const newErrors = { name: "", description: "" };
+    let hasErrors = false;
 
+    // Validate name
     if (name.trim() === "") {
       newErrors.name = "Community name is required.";
-      valid = false;
+      hasErrors = true;
     } else if (name.length > 100) {
       newErrors.name = "Community name must be 100 characters or less.";
-      valid = false;
+      hasErrors = true;
+    } else if (
+      communities.some(
+        (c) => c.name.toLowerCase() === name.trim().toLowerCase()
+      )
+    ) {
+      newErrors.name =
+        "A community with this name already exists. Please choose a different name.";
+      hasErrors = true;
     }
 
+    // Validate description
     if (description.trim() === "") {
       newErrors.description = "Community description is required.";
-      valid = false;
+      hasErrors = true;
     } else if (description.length > 500) {
       newErrors.description =
         "Community description must be 500 characters or less.";
-      valid = false;
+      hasErrors = true;
     } else {
       const linkError = validateHyperlinks(description);
       if (linkError) {
         newErrors.description = linkError;
-        valid = false;
+        hasErrors = true;
       }
     }
 
-    if (username.trim() === "") {
-      newErrors.username = "Creator username is required.";
-      valid = false;
+    setErrors(newErrors);
+    return !hasErrors;
+  };
+
+  const handleSubmit = async () => {
+    // Validate all fields first
+    if (!validateForm()) {
+      return;
     }
 
-    setErrors(newErrors);
-    if (!valid) return;
-
+    // Try to create community
     if (onEngender) {
-      onEngender({
+      const success = await onEngender({
         name: name.trim(),
         description: description.trim(),
-        // postIDs: [], // set by DB
-        // startDate: new Date(), // set by DB
-        members: [username.trim()],
+        members: [currentUser.displayName],
       });
+
+      // If API call failed, show generic error
+      if (!success) {
+        setErrors((prev) => ({
+          ...prev,
+          name: "Failed to create community. Please try again.",
+        }));
+      }
     }
   };
 
@@ -67,7 +84,13 @@ const CreateCommunityPage = ({ onEngender }) => {
           type="text"
           placeholder="Enter Community Name (Max 100 characters)"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            // Clear name error when user starts typing
+            if (errors.name) {
+              setErrors((prev) => ({ ...prev, name: "" }));
+            }
+          }}
           required
         />
         {errors.name && (
@@ -83,25 +106,17 @@ const CreateCommunityPage = ({ onEngender }) => {
           type="text"
           placeholder="Enter Community Description (Max 500 characters)"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => {
+            setDescription(e.target.value);
+            // Clear description error when user starts typing
+            if (errors.description) {
+              setErrors((prev) => ({ ...prev, description: "" }));
+            }
+          }}
           required
         />
         {errors.description && (
           <div className="create_community_error">{errors.description}</div>
-        )}
-      </div>
-      <div id="create_community_username_container">
-        <div id="create_community_username">Creator Username (required)</div>
-        <input
-          id="create_community_username_input"
-          type="text"
-          placeholder="Enter Creator Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-        />
-        {errors.username && (
-          <div className="create_community_error">{errors.username}</div>
         )}
       </div>
       <button
