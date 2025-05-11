@@ -429,6 +429,7 @@ function App() {
           getCommentCount={getCommentCount}
           getLinkFlairContent={getLinkFlairContent}
           searchQuery={viewState.query}
+          currentUser={currentUser}
         />
       );
       break;

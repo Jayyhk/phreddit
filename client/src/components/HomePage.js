@@ -158,7 +158,23 @@ const HomePage = ({
             {otherPosts.map(renderPost)}
           </div>
         )}
-        {(searchQuery || currentUser?.guest) && posts.map(renderPost)}
+        {searchQuery && !currentUser?.guest && (
+          <>
+            {userCommunityPosts.length > 0 && (
+              <div className="posts-section">
+                <h3 className="section-header">Your Communities</h3>
+                {userCommunityPosts.map(renderPost)}
+              </div>
+            )}
+            {otherPosts.length > 0 && (
+              <div className="posts-section">
+                <h3 className="section-header">Other Communities</h3>
+                {otherPosts.map(renderPost)}
+              </div>
+            )}
+          </>
+        )}
+        {searchQuery && currentUser?.guest && posts.map(renderPost)}
       </div>
     </div>
   );
