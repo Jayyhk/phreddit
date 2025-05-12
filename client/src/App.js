@@ -17,6 +17,9 @@ import WelcomePage from "./components/WelcomePage";
 import CreateAccountPage from "./components/CreateAccountPage";
 import ErrorBanner from "./components/ErrorBanner";
 import UserProfilePage from "./components/UserProfilePage";
+import EditCommunityPage from "./components/EditCommunityPage";
+import EditPostPage from "./components/EditPostPage";
+import EditCommentPage from "./components/EditCommentPage";
 
 axios.defaults.baseURL = "http://localhost:8000";
 axios.defaults.withCredentials = true; // send session cookie
@@ -322,147 +325,257 @@ function App() {
     }
 
     case "create-community":
-      mainContent = (
-        <CreateCommunityPage
-          currentUser={currentUser}
-          communities={communities}
-          onEngender={async (data) => {
-            try {
-              const r = await axios.post("/communities", data);
-              // Fetch fresh communities list to get proper isMember flags
-              const communitiesResponse = await axios.get("/communities");
-              setCommunities(communitiesResponse.data);
-              renderView("community", { communityID: r.data._id });
-              return true;
-            } catch (e) {
-              console.error("Failed to create community", e);
-              return false;
-            }
-          }}
-          onError={handleError}
-        />
-      );
+      if (viewState.community) {
+        mainContent = (
+          <EditCommunityPage
+            community={viewState.community}
+            communities={communities}
+            onEngender={async (data) => {
+              try {
+                const r = await axios.put(`/communities/${data._id}`, data);
+                // Fetch fresh communities list to get proper isMember flags
+                const communitiesResponse = await axios.get("/communities");
+                setCommunities(communitiesResponse.data);
+                renderView("profile");
+                return true;
+              } catch (e) {
+                console.error("Failed to update community", e);
+                return false;
+              }
+            }}
+            onDeleteCommunity={async (id) => {
+              // delete on the server
+              await axios.delete(`/communities/${id}`);
+              // refresh global list & go back to profile
+              await refreshCommunities();
+              renderView("profile");
+            }}
+            onError={handleError}
+          />
+        );
+      } else {
+        mainContent = (
+          <CreateCommunityPage
+            currentUser={currentUser}
+            communities={communities}
+            onEngender={async (data) => {
+              try {
+                const r = await axios.post("/communities", data);
+                // Fetch fresh communities list to get proper isMember flags
+                const communitiesResponse = await axios.get("/communities");
+                setCommunities(communitiesResponse.data);
+                renderView("community", { communityID: r.data._id });
+                return true;
+              } catch (e) {
+                console.error("Failed to create community", e);
+                return false;
+              }
+            }}
+            onError={handleError}
+          />
+        );
+      }
       break;
 
     case "create-post":
-      mainContent = (
-        <CreatePostPage
-          communities={communities}
-          linkFlairs={linkFlairs}
-          currentUser={currentUser}
-          onSubmit={async (data) => {
-            try {
-              // First verify the community exists
-              const community = communities.find(
-                (c) => c._id === data.communityID
-              );
-              if (!community) {
-                throw new Error("Selected community not found");
+      if (viewState.post) {
+        mainContent = (
+          <EditPostPage
+            post={viewState.post}
+            communities={communities}
+            linkFlairs={linkFlairs}
+            currentUser={currentUser}
+            onSubmit={async (data) => {
+              try {
+                const r = await axios.put(`/posts/${data._id}`, data);
+                // Update local state with the response data
+                setPosts((prevPosts) =>
+                  prevPosts.map((p) => (p._id === data._id ? r.data : p))
+                );
+                renderView("profile");
+                return true;
+              } catch (e) {
+                console.error("Failed to update post", e);
+                return false;
               }
+            }}
+            onDeletePost={async (id) => {
+              try {
+                await axios.delete(`/posts/${id}`);
+                // Refresh posts list
+                const postsResponse = await axios.get("/posts");
+                setPosts(postsResponse.data);
+                renderView("profile");
+              } catch (err) {
+                handleError(
+                  err.response?.data?.error ||
+                    "Failed to delete post. Please try again."
+                );
+              }
+            }}
+            onError={handleError}
+          />
+        );
+      } else {
+        mainContent = (
+          <CreatePostPage
+            communities={communities}
+            linkFlairs={linkFlairs}
+            currentUser={currentUser}
+            onSubmit={async (data) => {
+              try {
+                // First verify the community exists
+                const community = communities.find(
+                  (c) => c._id === data.communityID
+                );
+                if (!community) {
+                  throw new Error("Selected community not found");
+                }
 
-              // Create link flair if needed
-              let flairID = data.selectedLinkFlairID;
-              if (!flairID && data.newLinkFlair) {
-                const r1 = await axios.post("/linkflairs", {
-                  content: data.newLinkFlair,
+                // Create link flair if needed
+                let flairID = data.selectedLinkFlairID;
+                if (!flairID && data.newLinkFlair) {
+                  const r1 = await axios.post("/linkflairs", {
+                    content: data.newLinkFlair,
+                  });
+                  flairID = r1.data._id;
+                  setLinkFlairs((prev) => [r1.data, ...prev]);
+                }
+
+                // Create the post
+                const postData = {
+                  title: data.title,
+                  content: data.content,
+                  postedBy: data.postedBy,
+                };
+
+                // Only add linkFlairID if it exists
+                if (flairID) {
+                  postData.linkFlairID = flairID;
+                }
+
+                const r2 = await axios.post("/posts", postData);
+                const newPost = r2.data;
+
+                // Add post to community
+                await axios.post(`/communities/${data.communityID}/add-post`, {
+                  postID: newPost._id,
                 });
-                flairID = r1.data._id;
-                setLinkFlairs((prev) => [r1.data, ...prev]);
+
+                // Update local state
+                setPosts((prev) => [newPost, ...prev]);
+                setCommunities((prev) =>
+                  prev.map((c) =>
+                    c._id === data.communityID
+                      ? { ...c, postIDs: [newPost._id, ...c.postIDs] }
+                      : c
+                  )
+                );
+
+                // Navigate to the new post
+                renderView("post", { postID: newPost._id });
+              } catch (err) {
+                console.error("Failed to create post:", err);
+                const errorMsg =
+                  err.response?.data?.error ||
+                  err.message ||
+                  "Failed to create post. Please try again.";
+                handleError(errorMsg);
               }
-
-              // Create the post
-              const r2 = await axios.post("/posts", {
-                title: data.title,
-                content: data.content,
-                linkFlairID: flairID,
-                postedBy: data.postedBy,
-              });
-              const newPost = r2.data;
-
-              // Add post to community
-              await axios.post(`/communities/${data.communityID}/add-post`, {
-                postID: newPost._id,
-              });
-
-              // Update local state
-              setPosts((prev) => [newPost, ...prev]);
-              setCommunities((prev) =>
-                prev.map((c) =>
-                  c._id === data.communityID
-                    ? { ...c, postIDs: [newPost._id, ...c.postIDs] }
-                    : c
-                )
-              );
-
-              // Navigate to the new post
-              renderView("post", { postID: newPost._id });
-            } catch (err) {
-              console.error("Failed to create post:", err);
-              const errorMsg =
-                err.response?.data?.error ||
-                err.message ||
-                "Failed to create post. Please try again.";
-              handleError(errorMsg);
-            }
-          }}
-          onError={handleError}
-        />
-      );
+            }}
+            onError={handleError}
+          />
+        );
+      }
       break;
 
     case "create-comment":
-      mainContent = (
-        <CreateCommentPage
-          currentUser={currentUser}
-          onSubmit={async (data) => {
-            try {
-              const r = await axios.post("/comments", {
-                content: data.content,
-                commentedBy: data.commentedBy,
-              });
-              const cid = r.data._id;
-
-              if (viewState.replyCommentID) {
-                await axios.post(
-                  `/comments/${viewState.replyCommentID}/add-reply`,
-                  { replyCommentID: cid }
-                );
-              } else {
-                await axios.post(`/posts/${viewState.postID}/add-comment`, {
-                  commentID: cid,
-                });
-              }
-
-              setCommentCounts((cc) => ({
-                ...cc,
-                [viewState.postID]: (cc[viewState.postID] || 0) + 1,
-              }));
-
+      if (viewState.comment) {
+        mainContent = (
+          <EditCommentPage
+            comment={viewState.comment}
+            currentUser={currentUser}
+            onSubmit={async (data) => {
               try {
-                const ld = await axios.get(
-                  `/posts/${viewState.postID}/latest-comment-date`
-                );
-                setLatestDates((prev) => ({
-                  ...prev,
-                  [viewState.postID]: new Date(ld.data.latestCommentDate),
-                }));
-              } catch (err) {
-                console.error("Failed to refresh latest date:", err);
+                const r = await axios.put(`/comments/${data._id}`, {
+                  content: data.content,
+                  commentedBy: data.commentedBy,
+                });
+                renderView("profile");
+                return true;
+              } catch (e) {
+                console.error("Failed to update comment", e);
+                return false;
               }
+            }}
+            onDeleteComment={async (id) => {
+              try {
+                await axios.delete(`/comments/${id}`);
+                renderView("profile");
+              } catch (err) {
+                handleError(
+                  err.response?.data?.error ||
+                    "Failed to delete comment. Please try again."
+                );
+              }
+            }}
+            onError={handleError}
+          />
+        );
+      } else {
+        mainContent = (
+          <CreateCommentPage
+            currentUser={currentUser}
+            onSubmit={async (data) => {
+              try {
+                const r = await axios.post("/comments", {
+                  content: data.content,
+                  commentedBy: data.commentedBy,
+                });
+                const cid = r.data._id;
 
-              renderView("post", { postID: viewState.postID });
-            } catch (err) {
-              console.error("Failed to add comment:", err);
-              const errorMsg =
-                err.response?.data?.error ||
-                err.message ||
-                "Failed to add comment. Please try again.";
-              handleError(errorMsg);
-            }
-          }}
-          onError={handleError}
-        />
-      );
+                if (viewState.replyCommentID) {
+                  await axios.post(
+                    `/comments/${viewState.replyCommentID}/add-reply`,
+                    { replyCommentID: cid }
+                  );
+                } else {
+                  await axios.post(`/posts/${viewState.postID}/add-comment`, {
+                    commentID: cid,
+                  });
+                }
+
+                setCommentCounts((cc) => ({
+                  ...cc,
+                  [viewState.postID]: (cc[viewState.postID] || 0) + 1,
+                }));
+
+                try {
+                  const ld = await axios.get(
+                    `/posts/${viewState.postID}/latest-comment-date`
+                  );
+                  setLatestDates((prev) => ({
+                    ...prev,
+                    [viewState.postID]: new Date(ld.data.latestCommentDate),
+                  }));
+                } catch (err) {
+                  console.error("Failed to refresh latest date:", err);
+                }
+
+                renderView("post", { postID: viewState.postID });
+              } catch (err) {
+                console.error("Failed to add comment:", err);
+                const errorMsg =
+                  err.response?.data?.error ||
+                  err.message ||
+                  "Failed to add comment. Please try again.";
+                handleError(errorMsg);
+              }
+            }}
+            onError={handleError}
+          />
+        );
+      }
       break;
 
     case "search":
@@ -544,7 +657,7 @@ function App() {
         onTitleClick={handleErrorRedirect}
         onSearch={(q) => renderView("search", { query: q })}
         onCreatePost={() => renderView("create-post")}
-        isCreatePostActive={viewState.page === "create-post"}
+        isCreatePostActive={viewState.page === "create-post" && !viewState.post}
         onLogout={handleLogout}
         isLoggedIn={!!currentUser && !currentUser.guest}
         currentUser={currentUser}
@@ -563,7 +676,9 @@ function App() {
           renderView("community", { communityID: cid });
         }}
         isHomeActive={viewState.page === "home"}
-        isCreateCommunityActive={viewState.page === "create-community"}
+        isCreateCommunityActive={
+          viewState.page === "create-community" && !viewState.community
+        }
         activeCommunityID={activeCommunityID}
         isLoggedIn={!!currentUser && !currentUser.guest}
         currentUser={currentUser}
