@@ -39,6 +39,7 @@ function App() {
   const handleErrorRedirect = () => {
     setError("");
     setCurrentUser(null);
+    setInitialLoadDone(false); // Reset the initial load flag
     setViewState({ page: "login" });
   };
 
