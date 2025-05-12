@@ -183,6 +183,7 @@ function App() {
       await axios.post("/logout");
       setCurrentUser(null);
       setViewState({ page: "login" });
+      setInitialLoadDone(false); // Reset the initial load flag
     } catch (err) {
       console.error("Logout failed:", err);
       const errorMsg =
