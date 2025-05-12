@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { formatTimeDelta, parseHyperlinks } from "./Helpers";
 import axios from "axios";
+import ReputationErrorBanner from "./ReputationErrorBanner";
 
 const nestComments = (flatComments, commentIDs) => {
   return commentIDs
@@ -17,10 +18,12 @@ const nestComments = (flatComments, commentIDs) => {
     .filter((c) => c !== null);
 };
 
-const Comment = ({ comment, onReply, isGuest }) => {
+const Comment = ({ comment, onReply, isGuest, onVote, currentUser }) => {
   const voteCount =
     (comment.upvoters?.length || 0) - (comment.downvoters?.length || 0);
   const voteLabel = Math.abs(voteCount) === 1 ? "Vote" : "Votes";
+  const hasUpvoted = comment.upvoters?.includes(currentUser?.displayName);
+  const hasDownvoted = comment.downvoters?.includes(currentUser?.displayName);
 
   return (
     <div className="comment_container">
@@ -30,10 +33,47 @@ const Comment = ({ comment, onReply, isGuest }) => {
         <span className="comment_date">
           {formatTimeDelta(comment.commentedDate)}
         </span>
-        <span className="cdot"> ⋅ </span>
-        <span className="comment_date">
-          {voteCount} {voteLabel}
-        </span>
+        {!isGuest && (
+          <>
+            <span className="cdot"> ⋅ </span>
+            <div
+              className="vote-section"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                marginLeft: "5px",
+              }}
+            >
+              <button
+                onClick={() => onVote(comment._id, "upvote")}
+                style={{
+                  color: hasUpvoted
+                    ? "var(--reddit-color)"
+                    : "var(--dark-text-color)",
+                  fontSize: "12px",
+                  padding: "0 2px",
+                }}
+                className="vote-button"
+              >
+                ▲
+              </button>
+              <span className="comment_date" style={{ margin: "0 5px" }}>
+                {voteCount} {voteLabel}
+              </span>
+              <button
+                onClick={() => onVote(comment._id, "downvote")}
+                style={{
+                  color: hasDownvoted ? "#0079d3" : "var(--dark-text-color)",
+                  fontSize: "12px",
+                  padding: "0 2px",
+                }}
+                className="vote-button"
+              >
+                ▼
+              </button>
+            </div>
+          </>
+        )}
       </div>
       <div
         className="comment_content"
@@ -56,6 +96,8 @@ const Comment = ({ comment, onReply, isGuest }) => {
               comment={reply}
               onReply={onReply}
               isGuest={isGuest}
+              onVote={onVote}
+              currentUser={currentUser}
             />
           ))}
         </div>
@@ -73,11 +115,13 @@ const Post = ({
   getLinkFlairContent,
   isGuest,
   onError,
+  currentUser,
 }) => {
   const [currentPost, setCurrentPost] = useState(post);
   const [currentComments, setCurrentComments] = useState(comments);
   const [currentCommunity, setCurrentCommunity] = useState(community);
   const [isLoading, setIsLoading] = useState(true);
+  const [reputationError, setReputationError] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,6 +153,65 @@ const Post = ({
     fetchData();
   }, [post._id, community._id, onError]);
 
+  // Add effect to clear reputation error after 3 seconds
+  useEffect(() => {
+    if (reputationError) {
+      const timer = setTimeout(() => {
+        setReputationError("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [reputationError]);
+
+  const handleVote = async (id, type) => {
+    if (!currentUser) {
+      onError("You must be logged in to vote");
+      return;
+    }
+    try {
+      const response = await axios.post(`/posts/${id}/${type}`, {
+        username: currentUser.displayName,
+      });
+      setCurrentPost(response.data);
+      setReputationError("");
+    } catch (err) {
+      console.error("Failed to vote:", err);
+      const errorMsg =
+        err.response?.data?.error || "Failed to vote. Please try again.";
+      if (errorMsg.includes("Insufficient reputation")) {
+        setReputationError("You need at least 50 reputation points to vote");
+      } else {
+        onError(errorMsg);
+      }
+    }
+  };
+
+  const handleCommentVote = async (id, type) => {
+    if (!currentUser) {
+      onError("You must be logged in to vote");
+      return;
+    }
+    try {
+      const response = await axios.post(`/comments/${id}/${type}`, {
+        username: currentUser.displayName,
+      });
+      setCurrentComments((prev) =>
+        prev.map((c) => (c._id === id ? response.data : c))
+      );
+      setReputationError("");
+    } catch (err) {
+      console.error("Failed to vote on comment:", err);
+      const errorMsg =
+        err.response?.data?.error ||
+        "Failed to vote on comment. Please try again.";
+      if (errorMsg.includes("Insufficient reputation")) {
+        setReputationError("You need at least 50 reputation points to vote");
+      } else {
+        onError(errorMsg);
+      }
+    }
+  };
+
   if (isLoading) {
     return <div></div>;
   }
@@ -127,9 +230,14 @@ const Post = ({
   const commentCount = currentComments.length;
   const commentString = commentCount === 1 ? "Comment" : "Comments";
   const nestedComments = nestComments(currentComments, currentPost.commentIDs);
+  const hasUpvoted = currentPost.upvoters.includes(currentUser?.displayName);
+  const hasDownvoted = currentPost.downvoters.includes(
+    currentUser?.displayName
+  );
 
   return (
     <div>
+      <ReputationErrorBanner error={reputationError} />
       <div id="postpage_header">
         <div id="postpage_headertop">
           <span id="postpage_community">
@@ -154,14 +262,36 @@ const Post = ({
           }}
         ></div>
         <div id="postpage_footer">
-          <span className="view_count">
-            {currentPost.upvoters.length - currentPost.downvoters.length}{" "}
-            {Math.abs(
-              currentPost.upvoters.length - currentPost.downvoters.length
-            ) === 1
-              ? "Vote"
-              : "Votes"}
-          </span>
+          {!isGuest && (
+            <div className="vote-section">
+              <button
+                onClick={() => handleVote(currentPost._id, "upvote")}
+                style={{
+                  color: hasUpvoted ? "var(--reddit-color)" : "inherit",
+                }}
+                className="vote-button"
+              >
+                ▲
+              </button>
+              <span className="view_count">
+                {currentPost.upvoters.length - currentPost.downvoters.length}{" "}
+                {Math.abs(
+                  currentPost.upvoters.length - currentPost.downvoters.length
+                ) === 1
+                  ? "Vote"
+                  : "Votes"}
+              </span>
+              <button
+                onClick={() => handleVote(currentPost._id, "downvote")}
+                style={{
+                  color: hasDownvoted ? "#0079d3" : "inherit",
+                }}
+                className="vote-button"
+              >
+                ▼
+              </button>
+            </div>
+          )}
           <span className="view_count">
             {currentPost.views} {viewString}
           </span>
@@ -182,18 +312,16 @@ const Post = ({
         </div>
       </div>
       <div id="comment_section">
-        {nestedComments && nestedComments.length > 0 && (
-          <>
-            {nestedComments.map((comment) => (
-              <Comment
-                key={comment._id}
-                comment={comment}
-                onReply={onReply}
-                isGuest={isGuest}
-              />
-            ))}
-          </>
-        )}
+        {nestedComments.map((comment) => (
+          <Comment
+            key={comment._id}
+            comment={comment}
+            onReply={onReply}
+            isGuest={isGuest}
+            onVote={handleCommentVote}
+            currentUser={currentUser}
+          />
+        ))}
       </div>
     </div>
   );

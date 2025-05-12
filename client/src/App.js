@@ -309,6 +309,7 @@ function App() {
           getLinkFlairContent={getLinkFlairContent}
           isGuest={currentUser?.guest}
           onError={handleError}
+          currentUser={currentUser}
         />
       ) : (
         <div>Post not found.</div>

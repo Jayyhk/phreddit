@@ -928,21 +928,26 @@ button:disabled {
 .vote-section {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .vote-section button {
   background: none;
   border: none;
-  font-size: 20px;
   cursor: pointer;
-  padding: 4px 8px;
+  font-size: 1.2em;
+  padding: 2px 4px;
+  transition: color 0.2s ease;
   color: var(--dark-text-color);
-  transition: color 0.2s;
+  font-weight: bold;
 }
 
-.vote-section button:hover {
-  color: var(--reddit-color);
+.vote-section button:first-child:hover {
+  color: var(--reddit-color) !important;
+}
+
+.vote-section button:last-child:hover {
+  color: #0079d3 !important;
 }
 
 .vote-count {

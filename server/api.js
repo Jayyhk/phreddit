@@ -713,17 +713,46 @@ router.post("/posts/:id/upvote", async (req, res) => {
       return res.status(400).json({ error: "Username is required" });
     }
 
+    // Get user's reputation
+    const user = await User.findOne({ displayName: username });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if user has enough reputation
+    if (user.reputation < 50) {
+      return res.status(403).json({ error: "Insufficient reputation to vote" });
+    }
+
     // Check if user has already upvoted
     if (post.upvoters.includes(username)) {
       // Remove upvote
       post.upvoters = post.upvoters.filter((voter) => voter !== username);
+      // Decrease poster's reputation
+      const poster = await User.findOne({ displayName: post.postedBy });
+      if (poster) {
+        poster.reputation -= 5;
+        await poster.save();
+      }
     } else {
       // Remove from downvoters if they downvoted
       if (post.downvoters.includes(username)) {
         post.downvoters = post.downvoters.filter((voter) => voter !== username);
+        // Increase poster's reputation (undo downvote penalty)
+        const poster = await User.findOne({ displayName: post.postedBy });
+        if (poster) {
+          poster.reputation += 10;
+          await poster.save();
+        }
       }
       // Add upvote
       post.upvoters.push(username);
+      // Increase poster's reputation
+      const poster = await User.findOne({ displayName: post.postedBy });
+      if (poster) {
+        poster.reputation += 5;
+        await poster.save();
+      }
     }
 
     const savedPost = await post.save();
@@ -746,21 +775,192 @@ router.post("/posts/:id/downvote", async (req, res) => {
       return res.status(400).json({ error: "Username is required" });
     }
 
+    // Get user's reputation
+    const user = await User.findOne({ displayName: username });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if user has enough reputation
+    if (user.reputation < 50) {
+      return res.status(403).json({ error: "Insufficient reputation to vote" });
+    }
+
     // Check if user has already downvoted
     if (post.downvoters.includes(username)) {
       // Remove downvote
       post.downvoters = post.downvoters.filter((voter) => voter !== username);
+      // Increase poster's reputation (undo downvote penalty)
+      const poster = await User.findOne({ displayName: post.postedBy });
+      if (poster) {
+        poster.reputation += 10;
+        await poster.save();
+      }
     } else {
       // Remove from upvoters if they upvoted
       if (post.upvoters.includes(username)) {
         post.upvoters = post.upvoters.filter((voter) => voter !== username);
+        // Decrease poster's reputation (undo upvote bonus)
+        const poster = await User.findOne({ displayName: post.postedBy });
+        if (poster) {
+          poster.reputation -= 5;
+          await poster.save();
+        }
       }
       // Add downvote
       post.downvoters.push(username);
+      // Decrease poster's reputation
+      const poster = await User.findOne({ displayName: post.postedBy });
+      if (poster) {
+        poster.reputation -= 10;
+        await poster.save();
+      }
     }
 
     const savedPost = await post.save();
     res.json(savedPost);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// upvoteComment(commentID, username)
+router.post("/comments/:id/upvote", async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id);
+    if (!comment) {
+      return res.status(404).json({ error: "Comment not found" });
+    }
+
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    // Get user's reputation
+    const user = await User.findOne({ displayName: username });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if user has enough reputation
+    if (user.reputation < 50) {
+      return res.status(403).json({ error: "Insufficient reputation to vote" });
+    }
+
+    // Check if user has already upvoted
+    if (comment.upvoters.includes(username)) {
+      // Remove upvote
+      comment.upvoters = comment.upvoters.filter((voter) => voter !== username);
+      // Decrease commenter's reputation
+      const commenter = await User.findOne({
+        displayName: comment.commentedBy,
+      });
+      if (commenter) {
+        commenter.reputation -= 5;
+        await commenter.save();
+      }
+    } else {
+      // Remove from downvoters if they downvoted
+      if (comment.downvoters.includes(username)) {
+        comment.downvoters = comment.downvoters.filter(
+          (voter) => voter !== username
+        );
+        // Increase commenter's reputation (undo downvote penalty)
+        const commenter = await User.findOne({
+          displayName: comment.commentedBy,
+        });
+        if (commenter) {
+          commenter.reputation += 10;
+          await commenter.save();
+        }
+      }
+      // Add upvote
+      comment.upvoters.push(username);
+      // Increase commenter's reputation
+      const commenter = await User.findOne({
+        displayName: comment.commentedBy,
+      });
+      if (commenter) {
+        commenter.reputation += 5;
+        await commenter.save();
+      }
+    }
+
+    const savedComment = await comment.save();
+    res.json(savedComment);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// downvoteComment(commentID, username)
+router.post("/comments/:id/downvote", async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id);
+    if (!comment) {
+      return res.status(404).json({ error: "Comment not found" });
+    }
+
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    // Get user's reputation
+    const user = await User.findOne({ displayName: username });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if user has enough reputation
+    if (user.reputation < 50) {
+      return res.status(403).json({ error: "Insufficient reputation to vote" });
+    }
+
+    // Check if user has already downvoted
+    if (comment.downvoters.includes(username)) {
+      // Remove downvote
+      comment.downvoters = comment.downvoters.filter(
+        (voter) => voter !== username
+      );
+      // Increase commenter's reputation (undo downvote penalty)
+      const commenter = await User.findOne({
+        displayName: comment.commentedBy,
+      });
+      if (commenter) {
+        commenter.reputation += 10;
+        await commenter.save();
+      }
+    } else {
+      // Remove from upvoters if they upvoted
+      if (comment.upvoters.includes(username)) {
+        comment.upvoters = comment.upvoters.filter(
+          (voter) => voter !== username
+        );
+        // Decrease commenter's reputation (undo upvote bonus)
+        const commenter = await User.findOne({
+          displayName: comment.commentedBy,
+        });
+        if (commenter) {
+          commenter.reputation -= 5;
+          await commenter.save();
+        }
+      }
+      // Add downvote
+      comment.downvoters.push(username);
+      // Decrease commenter's reputation
+      const commenter = await User.findOne({
+        displayName: comment.commentedBy,
+      });
+      if (commenter) {
+        commenter.reputation -= 10;
+        await commenter.save();
+      }
+    }
+
+    const savedComment = await comment.save();
+    res.json(savedComment);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

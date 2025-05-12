@@ -98,7 +98,7 @@ const HomePage = ({
         <div className="post_footer">
           <span className="view_count">
             {post.upvoters.length - post.downvoters.length}{" "}
-            {post.upvoters.length - post.downvoters.length === 1
+            {Math.abs(post.upvoters.length - post.downvoters.length) === 1
               ? "Vote"
               : "Votes"}
           </span>

@@ -23,6 +23,14 @@ const CommentSchema = new Schema({
     required: true,
     default: Date.now,
   },
+  upvoters: {
+    type: [String],
+    default: [],
+  },
+  downvoters: {
+    type: [String],
+    default: [],
+  },
 });
 
 CommentSchema.virtual("url").get(function () {
