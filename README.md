@@ -15,8 +15,7 @@ Jake Mallen
 
 - Use cases 1-10
 
-
 ## Team Member 2 Contribution
 Catherine Park
 
-- Use cases 11-20
+- Use cases 11-19

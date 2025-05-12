@@ -16,6 +16,7 @@ import CreateCommentPage from "./components/CreateCommentPage";
 import WelcomePage from "./components/WelcomePage";
 import CreateAccountPage from "./components/CreateAccountPage";
 import ErrorBanner from "./components/ErrorBanner";
+import UserProfilePage from "./components/UserProfilePage";
 
 axios.defaults.baseURL = "http://localhost:8000";
 axios.defaults.withCredentials = true; // send session cookie
@@ -194,7 +195,9 @@ function App() {
 
   const handleGuest = () => {
     setCurrentUser({ displayName: "Guest", guest: true });
-    // Don't set viewState here, let the effect handle it
+    setInitialLoadDone(false); // Reset initial load flag
+    // Set view state to home to trigger data loading
+    setViewState({ page: "home" });
   };
 
   const handleRegisterNav = () => setViewState({ page: "register" });
@@ -478,6 +481,28 @@ function App() {
       );
       break;
 
+    case "profile":
+      mainContent = (
+        <UserProfilePage
+          currentUser={currentUser}
+          onError={handleError}
+          onCommunitiesUpdate={refreshCommunities}
+          onPostsUpdate={() => {
+            axios.get("/posts").then((r) => setPosts(r.data));
+          }}
+          onEditCommunity={(community) => {
+            renderView("create-community", { community });
+          }}
+          onEditPost={(post) => {
+            renderView("create-post", { post });
+          }}
+          onEditComment={(comment) => {
+            renderView("create-comment", { comment });
+          }}
+        />
+      );
+      break;
+
     default:
       mainContent = <div>Invalid view</div>;
   }
@@ -524,6 +549,7 @@ function App() {
         isLoggedIn={!!currentUser && !currentUser.guest}
         currentUser={currentUser}
         onError={handleError}
+        onProfileClick={() => renderView("profile")}
       />
       <Navbar
         communities={communities}

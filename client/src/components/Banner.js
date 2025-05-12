@@ -9,6 +9,7 @@ const Banner = ({
   isLoggedIn,
   currentUser,
   onError,
+  onProfileClick,
 }) => {
   const [searchText, setSearchText] = useState("");
 
@@ -92,6 +93,7 @@ const Banner = ({
         <button
           id="banner_profile"
           className="button_style button_hover"
+          onClick={onProfileClick}
           disabled={!isLoggedIn}
         >
           {isLoggedIn ? currentUser?.displayName || "Profile" : "Guest"}

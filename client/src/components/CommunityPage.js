@@ -145,30 +145,15 @@ const CommunityPage = ({
           </div>
         </div>
         <div id="community_description">{currentCommunity.description}</div>
-        <div
-          id="community_stats"
-          style={{
-            marginBottom: "10px",
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <span
-            style={{
-              fontWeight: "bold",
-              color: "var(--dark-text-color)",
-              marginRight: "15px",
-            }}
-          >
+        <div id="community_date_created">
+          Created {formatTimeDelta(currentCommunity.startDate)} by{" "}
+          {currentCommunity.creator}
+        </div>
+        <div id="community_stats">
+          <span className="community_stat">
             <span className="community_stat_label">Posts:</span> {postCount}
           </span>
-          <span
-            style={{
-              fontWeight: "bold",
-              color: "var(--dark-text-color)",
-              marginRight: "15px",
-            }}
-          >
+          <span className="community_stat">
             <span className="community_stat_label">Members:</span> {memberCount}
           </span>
           {currentUser && !currentUser.guest && (
@@ -176,7 +161,7 @@ const CommunityPage = ({
               className="button_style button_hover"
               onClick={handleJoinLeave}
               disabled={isJoining}
-              style={{ padding: "2px 10px" }}
+              style={{ marginLeft: "20px" }}
             >
               {isJoining
                 ? "Processing..."
@@ -187,20 +172,18 @@ const CommunityPage = ({
           )}
         </div>
       </div>
-      <div>
+
+      <div className="posts">
         {currentPosts.map((post) => {
           const viewString = post.views === 1 ? "View" : "Views";
           const commentCount = getCommentCount(post._id);
           const commentString = commentCount === 1 ? "Comment" : "Comments";
-          const voteCount = post.upvoters.length - post.downvoters.length;
-          const voteString = Math.abs(voteCount) === 1 ? "Vote" : "Votes";
 
           return (
             <div
               key={post._id}
               className="post"
               onClick={() => handlePostClick(post._id)}
-              style={{ cursor: "pointer" }}
             >
               <div className="post_header">
                 <span className="post_author">{post.postedBy}</span>

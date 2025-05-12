@@ -966,4 +966,344 @@ router.post("/comments/:id/downvote", async (req, res) => {
   }
 });
 
+// Get user profile data
+router.get("/users/:username", async (req, res) => {
+  try {
+    if (!req.session.userID) {
+      console.log("No session userID found");
+      return res
+        .status(401)
+        .json({ error: "Must be logged in to view profile" });
+    }
+
+    // First find the user by session ID to ensure they're logged in
+    const sessionUser = await User.findById(req.session.userID);
+    if (!sessionUser) {
+      console.log("Session user not found");
+      return res.status(401).json({ error: "User session invalid" });
+    }
+
+    // Then find the requested user profile
+    const user = await User.findOne({ displayName: req.params.username });
+
+    if (!user) {
+      console.log("Requested user not found");
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Only allow users to view their own profile
+    if (user._id.toString() !== req.session.userID) {
+      console.log("User trying to view another user's profile");
+      return res
+        .status(403)
+        .json({ error: "Cannot view other users' profiles" });
+    }
+
+    res.json({
+      displayName: user.displayName,
+      email: user.email,
+      createdAt: user.createdAt,
+      reputation: user.reputation,
+    });
+  } catch (err) {
+    console.error("Error fetching user profile:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get user's communities
+router.get("/users/:username/communities", async (req, res) => {
+  try {
+    if (!req.session.userID) {
+      return res
+        .status(401)
+        .json({ error: "Must be logged in to view profile" });
+    }
+
+    const user = await User.findOne({ displayName: req.params.username });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Only allow users to view their own communities
+    if (user._id.toString() !== req.session.userID) {
+      return res
+        .status(403)
+        .json({ error: "Cannot view other users' communities" });
+    }
+
+    const communities = await Community.find({ creator: user.displayName });
+    res.json(communities);
+  } catch (err) {
+    console.error("Error fetching user communities:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get user's posts
+router.get("/users/:username/posts", async (req, res) => {
+  try {
+    if (!req.session.userID) {
+      return res
+        .status(401)
+        .json({ error: "Must be logged in to view profile" });
+    }
+
+    const user = await User.findOne({ displayName: req.params.username });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Only allow users to view their own posts
+    if (user._id.toString() !== req.session.userID) {
+      return res.status(403).json({ error: "Cannot view other users' posts" });
+    }
+
+    const posts = await Post.find({ postedBy: user.displayName });
+    res.json(posts);
+  } catch (err) {
+    console.error("Error fetching user posts:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get user's comments
+router.get("/users/:username/comments", async (req, res) => {
+  try {
+    if (!req.session.userID) {
+      return res
+        .status(401)
+        .json({ error: "Must be logged in to view profile" });
+    }
+
+    const user = await User.findOne({ displayName: req.params.username });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Only allow users to view their own comments
+    if (user._id.toString() !== req.session.userID) {
+      return res
+        .status(403)
+        .json({ error: "Cannot view other users' comments" });
+    }
+
+    const comments = await Comment.find({ commentedBy: user.displayName });
+
+    // Get post titles for each comment
+    const commentsWithPostTitles = await Promise.all(
+      comments.map(async (comment) => {
+        // Find the post that contains this comment
+        const posts = await Post.find();
+        let postTitle = "Unknown Post";
+
+        for (const post of posts) {
+          async function findComment(commentIds) {
+            for (const cid of commentIds) {
+              if (cid.toString() === comment._id.toString()) {
+                return true;
+              }
+              const childComment = await Comment.findById(cid);
+              if (childComment && childComment.commentIDs.length > 0) {
+                if (await findComment(childComment.commentIDs)) {
+                  return true;
+                }
+              }
+            }
+            return false;
+          }
+
+          if (await findComment(post.commentIDs)) {
+            postTitle = post.title;
+            break;
+          }
+        }
+
+        return {
+          ...comment.toObject(),
+          postTitle,
+        };
+      })
+    );
+
+    res.json(commentsWithPostTitles);
+  } catch (err) {
+    console.error("Error fetching user comments:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a post and all its comments recursively
+router.delete("/posts/:id", async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Helper to recursively delete comments
+    async function deleteComments(commentIds) {
+      for (const cid of commentIds) {
+        const comment = await Comment.findById(cid);
+        if (comment) {
+          await deleteComments(comment.commentIDs);
+          await Comment.findByIdAndDelete(cid);
+        }
+      }
+    }
+
+    // Delete all comments for this post
+    await deleteComments(post.commentIDs);
+
+    // Remove post from its community's postIDs
+    await Community.updateMany(
+      { postIDs: post._id },
+      { $pull: { postIDs: post._id } }
+    );
+
+    // Delete the post
+    await Post.findByIdAndDelete(post._id);
+
+    res.json({ message: "Post and all associated comments deleted." });
+  } catch (err) {
+    console.error("Error deleting post:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a community and all its posts and comments
+router.delete("/communities/:id", async (req, res) => {
+  try {
+    if (!req.session.userID) {
+      return res
+        .status(401)
+        .json({ error: "Must be logged in to delete a community" });
+    }
+
+    const community = await Community.findById(req.params.id);
+    if (!community) {
+      return res.status(404).json({ error: "Community not found" });
+    }
+
+    // Get user's display name
+    const user = await User.findById(req.session.userID);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    // Only allow the creator to delete the community
+    if (community.creator !== user.displayName) {
+      return res
+        .status(403)
+        .json({ error: "Only the community creator can delete it" });
+    }
+
+    // Helper to recursively delete comments
+    async function deleteComments(commentIds) {
+      for (const cid of commentIds) {
+        const comment = await Comment.findById(cid);
+        if (comment) {
+          await deleteComments(comment.commentIDs);
+          await Comment.findByIdAndDelete(cid);
+        }
+      }
+    }
+
+    // Delete all posts and their comments
+    for (const postId of community.postIDs) {
+      const post = await Post.findById(postId);
+      if (post) {
+        await deleteComments(post.commentIDs);
+        await Post.findByIdAndDelete(postId);
+      }
+    }
+
+    // Delete the community
+    await Community.findByIdAndDelete(community._id);
+
+    res.json({
+      message:
+        "Community and all associated posts and comments deleted successfully",
+    });
+  } catch (err) {
+    console.error("Error deleting community:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a comment and all its replies recursively
+router.delete("/comments/:id", async (req, res) => {
+  try {
+    if (!req.session.userID) {
+      return res
+        .status(401)
+        .json({ error: "Must be logged in to delete a comment" });
+    }
+
+    const comment = await Comment.findById(req.params.id);
+    if (!comment) {
+      return res.status(404).json({ error: "Comment not found" });
+    }
+
+    // Get user's display name
+    const user = await User.findById(req.session.userID);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    // Only allow the commenter to delete their comment
+    if (comment.commentedBy !== user.displayName) {
+      return res
+        .status(403)
+        .json({ error: "Only the comment author can delete it" });
+    }
+
+    // Helper to recursively delete replies
+    async function deleteReplies(commentIds) {
+      for (const cid of commentIds) {
+        const reply = await Comment.findById(cid);
+        if (reply) {
+          await deleteReplies(reply.commentIDs);
+          await Comment.findByIdAndDelete(cid);
+        }
+      }
+    }
+
+    // Delete all replies first
+    await deleteReplies(comment.commentIDs);
+
+    // Remove comment from its parent (either post or another comment)
+    const posts = await Post.find();
+    for (const post of posts) {
+      if (post.commentIDs.includes(comment._id)) {
+        post.commentIDs = post.commentIDs.filter(
+          (id) => id.toString() !== comment._id.toString()
+        );
+        await post.save();
+        break;
+      }
+    }
+
+    // Check if it's a reply to another comment
+    const allComments = await Comment.find();
+    for (const parentComment of allComments) {
+      if (parentComment.commentIDs.includes(comment._id)) {
+        parentComment.commentIDs = parentComment.commentIDs.filter(
+          (id) => id.toString() !== comment._id.toString()
+        );
+        await parentComment.save();
+        break;
+      }
+    }
+
+    // Finally delete the comment itself
+    await Comment.findByIdAndDelete(comment._id);
+
+    res.json({ message: "Comment and all replies deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting comment:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
