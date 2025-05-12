@@ -9,7 +9,7 @@ import Banner from "./components/Banner";
 import Navbar from "./components/Navbar";
 import HomePage from "./components/HomePage";
 import CommunityPage from "./components/CommunityPage";
-import PostPage from "./components/Post";
+import Post from "./components/Post";
 import CreateCommunityPage from "./components/CreateCommunityPage";
 import CreatePostPage from "./components/CreatePostPage";
 import CreateCommentPage from "./components/CreateCommentPage";
@@ -54,34 +54,45 @@ function App() {
   const [currentComments, setCurrentComments] = useState([]);
   const [currentCommunity, setCurrentCommunity] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   // --- FETCH ALL COMMUNITIES/POSTS/FLAIRS WHEN AUTHED ---
   useEffect(() => {
-    if (!currentUser) return;
-    axios
-      .get("/communities")
-      .then((r) => {
-        setCommunities(r.data);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch communities:", err);
+    if (!currentUser || initialLoadDone) return;
+
+    // Load all initial data on first login
+    const fetchInitialData = async () => {
+      try {
+        const [communitiesRes, postsRes, flairsRes] = await Promise.all([
+          axios.get("/communities"),
+          axios.get("/posts"),
+          axios.get("/linkflairs"),
+        ]);
+        setCommunities(communitiesRes.data);
+        setPosts(postsRes.data);
+        setLinkFlairs(flairsRes.data);
+        setInitialLoadDone(true);
+        // Set viewState to home after data is loaded
+        setViewState({ page: "home" });
+      } catch (err) {
+        console.error("Failed to fetch initial data:", err);
         handleError();
-      });
-    axios
-      .get("/posts")
-      .then((r) => setPosts(r.data))
-      .catch((err) => {
-        console.error("Failed to fetch posts:", err);
-        handleError();
-      });
-    axios
-      .get("/linkflairs")
-      .then((r) => setLinkFlairs(r.data))
-      .catch((err) => {
-        console.error("Failed to fetch link flairs:", err);
-        handleError();
-      });
-  }, [currentUser]);
+      }
+    };
+
+    fetchInitialData();
+  }, [currentUser, initialLoadDone]);
+
+  // Function to refresh communities list
+  const refreshCommunities = async () => {
+    try {
+      const res = await axios.get("/communities");
+      setCommunities(res.data);
+    } catch (err) {
+      console.error("Failed to fetch communities:", err);
+      handleError();
+    }
+  };
 
   // --- UPDATE COMMENT COUNTS WHEN posts CHANGES ---
   useEffect(() => {
@@ -161,7 +172,7 @@ function App() {
     try {
       const res = await axios.get("/me");
       setCurrentUser(res.data.user);
-      setViewState({ page: "home" });
+      // Don't set viewState here, let the effect handle it
     } catch (err) {
       console.error("Login failed:", err);
     }
@@ -182,7 +193,7 @@ function App() {
 
   const handleGuest = () => {
     setCurrentUser({ displayName: "Guest", guest: true });
-    setViewState({ page: "home" });
+    // Don't set viewState here, let the effect handle it
   };
 
   const handleRegisterNav = () => setViewState({ page: "register" });
@@ -191,6 +202,7 @@ function App() {
   const renderView = (page, params = {}) => {
     if (["home", "community", "search"].includes(page)) setSortType("newest");
     setViewState({ page, ...params });
+    window.scrollTo(0, 0);
   };
 
   const sortPosts = (list, mode) => {
@@ -276,28 +288,33 @@ function App() {
       break;
     }
 
-    case "post":
-      mainContent = currentPost ? (
-        <PostPage
-          post={currentPost}
-          community={currentCommunity}
+    case "post": {
+      const { postID } = viewState;
+      const post = posts.find((p) => p._id === postID);
+      const community = communities.find((c) => c.postIDs.includes(postID));
+      mainContent = post ? (
+        <Post
+          post={post}
+          community={community}
           comments={currentComments}
           onAddComment={() =>
-            renderView("create-comment", { postID: currentPost._id })
+            renderView("create-comment", { postID: post._id })
           }
           onReply={(cid) =>
             renderView("create-comment", {
-              postID: currentPost._id,
+              postID: post._id,
               replyCommentID: cid,
             })
           }
           getLinkFlairContent={getLinkFlairContent}
+          isGuest={currentUser?.guest}
           onError={handleError}
         />
       ) : (
-        <div>Loading post…</div>
+        <div>Post not found.</div>
       );
       break;
+    }
 
     case "create-community":
       mainContent = (
@@ -508,11 +525,15 @@ function App() {
       />
       <Navbar
         communities={communities}
-        onHomeClick={() => renderView("home")}
+        onHomeClick={() => {
+          refreshCommunities();
+          renderView("home");
+        }}
         onCreateCommunity={() => renderView("create-community")}
-        onCommunityClick={(cid) =>
-          renderView("community", { communityID: cid })
-        }
+        onCommunityClick={(cid) => {
+          refreshCommunities();
+          renderView("community", { communityID: cid });
+        }}
         isHomeActive={viewState.page === "home"}
         isCreateCommunityActive={viewState.page === "create-community"}
         activeCommunityID={activeCommunityID}

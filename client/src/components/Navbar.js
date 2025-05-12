@@ -21,8 +21,10 @@ const Navbar = ({
         if (a.isMember && !b.isMember) return -1;
         if (!a.isMember && b.isMember) return 1;
       }
-      // Then sort alphabetically
-      return a.name.localeCompare(b.name);
+      // Then sort alphabetically, with null check for names
+      const nameA = a.name || "";
+      const nameB = b.name || "";
+      return nameA.localeCompare(nameB);
     });
     setSortedCommunities(sorted);
   }, [communities, isLoggedIn, currentUser]);

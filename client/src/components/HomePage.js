@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { formatTimeDelta, parseHyperlinks } from "./Helpers";
+import axios from "axios";
 
 const HomePage = ({
   posts,
@@ -12,21 +13,51 @@ const HomePage = ({
   currentUser,
   onError,
 }) => {
-  const postCount = posts.length;
+  const [currentPosts, setCurrentPosts] = useState(posts);
+  const [currentCommunities, setCurrentCommunities] = useState(communities);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch fresh posts
+        const postsResponse = await axios.get("/posts");
+        setCurrentPosts(postsResponse.data);
+
+        // Fetch fresh communities
+        const communitiesResponse = await axios.get("/communities");
+        setCurrentCommunities(communitiesResponse.data);
+      } catch (err) {
+        console.error("Failed to fetch home data:", err);
+        onError("Failed to load home data. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [onError]);
+
+  const postCount = currentPosts.length;
   const postsLabel = postCount === 1 ? "Post" : "Posts";
   const resultsLabel = postCount === 1 ? "result" : "results";
 
   // Sort posts into user's communities and other communities
-  const userCommunities = communities.filter((c) => c.isMember);
+  const userCommunities = currentCommunities.filter((c) => c.isMember);
   const userCommunityIds = userCommunities.map((c) => c._id);
 
-  const userCommunityPosts = posts.filter((post) => {
-    const community = communities.find((c) => c.postIDs.includes(post._id));
+  const userCommunityPosts = currentPosts.filter((post) => {
+    const community = currentCommunities.find((c) =>
+      c.postIDs.includes(post._id)
+    );
     return community && userCommunityIds.includes(community._id);
   });
 
-  const otherPosts = posts.filter((post) => {
-    const community = communities.find((c) => c.postIDs.includes(post._id));
+  const otherPosts = currentPosts.filter((post) => {
+    const community = currentCommunities.find((c) =>
+      c.postIDs.includes(post._id)
+    );
     return !community || !userCommunityIds.includes(community._id);
   });
 
@@ -55,7 +86,9 @@ const HomePage = ({
   };
 
   const renderPost = (post) => {
-    const community = communities.find((c) => c.postIDs.includes(post._id));
+    const community = currentCommunities.find((c) =>
+      c.postIDs.includes(post._id)
+    );
     const viewString = post.views === 1 ? "View" : "Views";
     const commentCount = getCommentCount(post._id);
     const commentString = commentCount === 1 ? "Comment" : "Comments";
@@ -90,7 +123,7 @@ const HomePage = ({
           }}
         />
         <div className="post_footer">
-          <span className="vote-count">
+          <span className="view_count">
             {post.upvoters.length - post.downvoters.length}{" "}
             {post.upvoters.length - post.downvoters.length === 1
               ? "Vote"
@@ -106,6 +139,10 @@ const HomePage = ({
       </div>
     );
   };
+
+  if (isLoading) {
+    return <div></div>;
+  }
 
   return (
     <div>
@@ -148,7 +185,7 @@ const HomePage = ({
             : `${postCount} ${postsLabel}`}
         </div>
       </div>
-      <div id="home_posts">
+      <div>
         {!searchQuery &&
           !currentUser?.guest &&
           userCommunityPosts.length > 0 && (
@@ -164,7 +201,7 @@ const HomePage = ({
           </div>
         )}
         {!searchQuery && currentUser?.guest && (
-          <div className="posts-section">{posts.map(renderPost)}</div>
+          <div className="posts-section">{currentPosts.map(renderPost)}</div>
         )}
         {searchQuery && (
           <>
@@ -193,7 +230,9 @@ const HomePage = ({
               </>
             )}
             {currentUser?.guest && (
-              <div className="posts-section">{posts.map(renderPost)}</div>
+              <div className="posts-section">
+                {currentPosts.map(renderPost)}
+              </div>
             )}
           </>
         )}

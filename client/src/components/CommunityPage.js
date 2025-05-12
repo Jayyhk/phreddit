@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { formatTimeDelta, parseHyperlinks } from "./Helpers";
 import axios from "axios";
 
@@ -14,12 +14,42 @@ const CommunityPage = ({
   onCommunitiesUpdate,
 }) => {
   const [isJoining, setIsJoining] = useState(false);
-  const postCount = community.postIDs.length;
-  const memberCount = community.members.length;
+  const [currentCommunity, setCurrentCommunity] = useState(community);
+  const [currentPosts, setCurrentPosts] = useState(posts);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch fresh community data
+        const communityResponse = await axios.get(
+          `/communities/${community._id}`
+        );
+        setCurrentCommunity(communityResponse.data);
+
+        // Fetch fresh posts for this community
+        const postsResponse = await axios.get(
+          `/communities/${community._id}/posts`
+        );
+        setCurrentPosts(postsResponse.data);
+      } catch (err) {
+        console.error("Failed to fetch community data:", err);
+        onError("Failed to load community data. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [community._id, onError]);
+
+  const postCount = currentCommunity.postIDs.length;
+  const memberCount = currentCommunity.members.length;
   const isMember =
     currentUser &&
     !currentUser.guest &&
-    community.members.includes(currentUser.displayName);
+    currentCommunity.members.includes(currentUser.displayName);
 
   const handleSortChange = (sortType) => {
     try {
@@ -46,39 +76,50 @@ const CommunityPage = ({
   };
 
   const handleJoinLeave = async () => {
-    if (!currentUser || currentUser.guest) return;
-
     setIsJoining(true);
     try {
-      if (isMember) {
-        await axios.post(`/communities/${community._id}/leave`);
-        community.members = community.members.filter(
-          (m) => m !== currentUser.displayName
-        );
-      } else {
-        await axios.post(`/communities/${community._id}/join`);
-        community.members.push(currentUser.displayName);
-      }
-      // Refresh communities list to update isMember flags
-      const response = await axios.get("/communities");
-      onCommunitiesUpdate(response.data);
+      await axios.post(
+        `/communities/${currentCommunity._id}/${isMember ? "leave" : "join"}`,
+        { username: currentUser.displayName }
+      );
+
+      // Fetch fresh community data after join/leave
+      const communityResponse = await axios.get(
+        `/communities/${currentCommunity._id}`
+      );
+
+      // Add isMember flag to the community data
+      const updatedCommunity = {
+        ...communityResponse.data,
+        isMember: !isMember, // Toggle the membership status
+      };
+
+      setCurrentCommunity(updatedCommunity);
+
+      // Update the communities list in the parent component
+      onCommunitiesUpdate((prev) =>
+        prev.map((c) => (c._id === currentCommunity._id ? updatedCommunity : c))
+      );
     } catch (err) {
       console.error("Failed to join/leave community:", err);
       const errorMsg =
         err.response?.data?.error ||
         "Failed to join/leave community. Please try again.";
       onError(errorMsg);
-      return;
     } finally {
       setIsJoining(false);
     }
   };
 
+  if (isLoading) {
+    return <div></div>;
+  }
+
   return (
     <div>
       <div id="community_header">
         <div id="community_header_top">
-          <h2 id="community_name">{community.name}</h2>
+          <h2>{currentCommunity.name}</h2>
           <div id="community_sort_buttons">
             <button
               className="button_style button_hover sort_button"
@@ -103,46 +144,51 @@ const CommunityPage = ({
             </button>
           </div>
         </div>
+        <div id="community_description">{currentCommunity.description}</div>
         <div
-          id="community_description"
-          dangerouslySetInnerHTML={{
-            __html: parseHyperlinks(community.description),
+          id="community_stats"
+          style={{
+            marginBottom: "10px",
+            display: "flex",
+            alignItems: "center",
           }}
-        />
-        <div id="community_date_created">
-          Created by {community.creator} {formatTimeDelta(community.startDate)}
-        </div>
-        <div id="community_stats">
-          <div
-            className="community_stat"
-            style={{ display: "flex", alignItems: "center" }}
+        >
+          <span
+            style={{
+              fontWeight: "bold",
+              color: "var(--dark-text-color)",
+              marginRight: "15px",
+            }}
           >
             <span className="community_stat_label">Posts:</span> {postCount}
-          </div>
-          <div
-            className="community_stat"
-            style={{ display: "flex", alignItems: "center" }}
+          </span>
+          <span
+            style={{
+              fontWeight: "bold",
+              color: "var(--dark-text-color)",
+              marginRight: "15px",
+            }}
           >
             <span className="community_stat_label">Members:</span> {memberCount}
-            {currentUser && !currentUser.guest && (
-              <button
-                className="button_style button_hover"
-                onClick={handleJoinLeave}
-                disabled={isJoining}
-                style={{ marginLeft: "20px" }}
-              >
-                {isJoining
-                  ? "Processing..."
-                  : isMember
-                  ? "Leave Community"
-                  : "Join Community"}
-              </button>
-            )}
-          </div>
+          </span>
+          {currentUser && !currentUser.guest && (
+            <button
+              className="button_style button_hover"
+              onClick={handleJoinLeave}
+              disabled={isJoining}
+              style={{ padding: "2px 10px" }}
+            >
+              {isJoining
+                ? "Processing..."
+                : isMember
+                ? "Leave Community"
+                : "Join Community"}
+            </button>
+          )}
         </div>
       </div>
-      <div id="community_posts">
-        {posts.map((post) => {
+      <div>
+        {currentPosts.map((post) => {
           const viewString = post.views === 1 ? "View" : "Views";
           const commentCount = getCommentCount(post._id);
           const commentString = commentCount === 1 ? "Comment" : "Comments";
@@ -177,8 +223,11 @@ const CommunityPage = ({
                 }}
               />
               <div className="post_footer">
-                <span className="vote-count">
-                  {voteCount} {voteString}
+                <span className="view_count">
+                  {post.upvoters.length - post.downvoters.length}{" "}
+                  {post.upvoters.length - post.downvoters.length === 1
+                    ? "Vote"
+                    : "Votes"}
                 </span>
                 <span className="view_count">
                   {post.views} {viewString}
