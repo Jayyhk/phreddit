@@ -24,8 +24,19 @@ body {
   margin: 0;
 }
 
+/* Make all form elements use Verdana */
+input,
+textarea,
+select,
+button,
+.form-field input,
+.form-field textarea,
+.form-field select {
+  font-family: Verdana, sans-serif;
+}
+
 input::placeholder {
-  font-family: "Verdana", sans-serif;
+  font-family: Verdana, sans-serif;
 }
 
 input {
