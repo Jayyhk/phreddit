@@ -8,7 +8,6 @@ const UserProfilePage = ({
   onEditPost,
   onEditComment,
   onCommunitiesUpdate,
-  onPostsUpdate,
 }) => {
   const [userData, setUserData] = useState(null);
   const [activeTab, setActiveTab] = useState(
@@ -215,7 +214,10 @@ const UserProfilePage = ({
           {activeTab === "users" && currentUser.isAdmin && (
             <div className="users-listing">
               {allUsers.length === 0 ? (
-                <p>No users found.</p>
+                <div className="no-posts">
+                  <p>No users found in the system.</p>
+                  <p>Users will appear here once they create accounts.</p>
+                </div>
               ) : (
                 allUsers.map((user) => (
                   <div key={user._id} className="listing-item">

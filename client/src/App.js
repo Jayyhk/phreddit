@@ -595,18 +595,6 @@ function App() {
           currentUser={currentUser}
           onError={handleError}
           onCommunitiesUpdate={refreshCommunities}
-          onPostsUpdate={() => {
-            axios.get("/posts").then((r) => setPosts(r.data));
-          }}
-          onEditCommunity={(community) => {
-            renderView("create-community", { community });
-          }}
-          onEditPost={(post) => {
-            renderView("create-post", { post });
-          }}
-          onEditComment={(comment) => {
-            renderView("create-comment", { comment });
-          }}
         />
       );
       break;
