@@ -1046,11 +1046,18 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 
 #banner_profile:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
+}
+
+#banner_profile.active {
+  background-color: var(--reddit-color);
+  color: white;
+  border-color: var(--reddit-color);
 }
 
 /* Navbar Error Message */
@@ -1150,18 +1157,17 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 10px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.listing-item:last-child {
-  border-bottom: none;
+  transition: background-color 0.2s;
+  gap: 15px;
 }
 
 .listing-item:hover {
-  background-color: #f5f5f5;
+  background-color: var(--hover-color);
 }
 
 .listing-item span {
@@ -1173,13 +1179,14 @@ button:disabled {
 }
 
 .listing-item button {
-  padding: 4px 8px;
+  padding: 6px 12px;
   background: none;
   border: 1px solid var(--border-color);
-  color: var(--error-color);
+  color: var(--reddit-color);
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .listing-item button:hover {
@@ -1247,4 +1254,49 @@ button:disabled {
 
 #community_stats button {
   padding: 2px 10px;
+}
+
+.profile-listings .listing-item {
+  padding: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.profile-listings .listing-item:hover {
+  background-color: var(--hover-color);
+}
+
+.user-info {
+  display: grid;
+  grid-template-columns: 3fr 4fr 3fr fr 2fr;
+  gap: 10px;
+  align-items: center;
+  padding: 0 10px;
+  flex: 1;
+}
+
+.user-name {
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.user-email {
+  color: var(--dark-text-color);
+}
+
+.user-reputation {
+  color: var(--dark-text-color);
+}
+
+.user-role {
+  color: var(--dark-text-color);
+  font-style: italic;
+}
+
+.user-joined {
+  color: var(--dark-text-color);
+  font-size: 0.9em;
 }

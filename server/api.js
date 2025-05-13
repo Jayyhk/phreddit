@@ -1306,4 +1306,184 @@ router.delete("/comments/:id", async (req, res) => {
   }
 });
 
+// Get all users (admin only)
+router.get("/users", async (req, res) => {
+  try {
+    if (!req.session.userID) {
+      return res.status(401).json({ error: "Must be logged in" });
+    }
+
+    const user = await User.findById(req.session.userID);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    // Find all non-admin users, excluding password hash
+    const users = await User.find({ isAdmin: false }, { passwordHash: 0 });
+    res.json(users);
+  } catch (err) {
+    console.error("Failed to fetch users:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete user (admin only)
+router.delete("/users/:id", async (req, res) => {
+  try {
+    if (!req.session.userID) {
+      return res.status(401).json({ error: "Must be logged in" });
+    }
+
+    // Check if requester is admin
+    const adminUser = await User.findById(req.session.userID);
+    if (!adminUser || !adminUser.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    // Find user to delete
+    const userToDelete = await User.findById(req.params.id);
+    if (!userToDelete) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Don't allow deleting admin users
+    if (userToDelete.isAdmin) {
+      return res.status(403).json({ error: "Cannot delete admin users" });
+    }
+
+    // 1. Remove user from all communities they've joined
+    const joinedCommunities = await Community.find({
+      members: userToDelete.displayName,
+    });
+    for (const community of joinedCommunities) {
+      community.members = community.members.filter(
+        (member) => member !== userToDelete.displayName
+      );
+      await community.save();
+    }
+
+    // 2. Delete all communities created by the user
+    const userCommunities = await Community.find({
+      creator: userToDelete.displayName,
+    });
+    for (const community of userCommunities) {
+      // Use existing community deletion endpoint logic
+      const communityId = community._id;
+
+      // Helper to recursively delete comments (reused from community deletion)
+      async function deleteComments(commentIds) {
+        for (const cid of commentIds) {
+          const comment = await Comment.findById(cid);
+          if (comment) {
+            await deleteComments(comment.commentIDs);
+            await Comment.findByIdAndDelete(cid);
+          }
+        }
+      }
+
+      // Delete all posts and their comments
+      for (const postId of community.postIDs) {
+        const post = await Post.findById(postId);
+        if (post) {
+          await deleteComments(post.commentIDs);
+          await Post.findByIdAndDelete(postId);
+        }
+      }
+
+      // Delete the community
+      await Community.findByIdAndDelete(communityId);
+    }
+
+    // 3. Delete any remaining posts by the user (in case they were in other communities)
+    const remainingPosts = await Post.find({
+      postedBy: userToDelete.displayName,
+    });
+    for (const post of remainingPosts) {
+      // Use existing post deletion endpoint logic
+      const postId = post._id;
+
+      // Helper to recursively delete comments (reused from post deletion)
+      async function deleteComments(commentIds) {
+        for (const cid of commentIds) {
+          const comment = await Comment.findById(cid);
+          if (comment) {
+            await deleteComments(comment.commentIDs);
+            await Comment.findByIdAndDelete(cid);
+          }
+        }
+      }
+
+      // Delete all comments for this post
+      await deleteComments(post.commentIDs);
+
+      // Remove post from its community's postIDs
+      await Community.updateMany(
+        { postIDs: postId },
+        { $pull: { postIDs: postId } }
+      );
+
+      // Delete the post
+      await Post.findByIdAndDelete(postId);
+    }
+
+    // 4. Delete any remaining comments by the user
+    const userComments = await Comment.find({
+      commentedBy: userToDelete.displayName,
+    });
+    for (const comment of userComments) {
+      // Use existing comment deletion endpoint logic
+      const commentId = comment._id;
+
+      // Helper to recursively delete replies (reused from comment deletion)
+      async function deleteReplies(commentIds) {
+        for (const cid of commentIds) {
+          const reply = await Comment.findById(cid);
+          if (reply) {
+            await deleteReplies(reply.commentIDs);
+            await Comment.findByIdAndDelete(cid);
+          }
+        }
+      }
+
+      // Delete all replies first
+      await deleteReplies(comment.commentIDs);
+
+      // Remove comment from its parent (either post or another comment)
+      const posts = await Post.find();
+      for (const post of posts) {
+        if (post.commentIDs.includes(commentId)) {
+          post.commentIDs = post.commentIDs.filter(
+            (id) => id.toString() !== commentId.toString()
+          );
+          await post.save();
+          break;
+        }
+      }
+
+      // Check if it's a reply to another comment
+      const allComments = await Comment.find();
+      for (const parentComment of allComments) {
+        if (parentComment.commentIDs.includes(commentId)) {
+          parentComment.commentIDs = parentComment.commentIDs.filter(
+            (id) => id.toString() !== commentId.toString()
+          );
+          await parentComment.save();
+          break;
+        }
+      }
+
+      // Finally delete the comment itself
+      await Comment.findByIdAndDelete(commentId);
+    }
+
+    // 5. Finally delete the user
+    await User.findByIdAndDelete(req.params.id);
+
+    res.json({ message: "User and all associated data deleted successfully" });
+  } catch (err) {
+    console.error("Failed to delete user:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

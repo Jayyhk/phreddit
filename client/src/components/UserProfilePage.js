@@ -11,11 +11,16 @@ const UserProfilePage = ({
   onPostsUpdate,
 }) => {
   const [userData, setUserData] = useState(null);
-  const [activeTab, setActiveTab] = useState("posts");
+  const [activeTab, setActiveTab] = useState(
+    currentUser?.isAdmin ? "users" : "posts"
+  );
   const [userCommunities, setUserCommunities] = useState([]);
   const [userPosts, setUserPosts] = useState([]);
   const [userComments, setUserComments] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -44,6 +49,21 @@ const UserProfilePage = ({
           `/users/${encodeURIComponent(currentUser.displayName)}`
         );
         setUserData(response.data);
+
+        // If user is admin, fetch all users
+        if (currentUser.isAdmin) {
+          try {
+            const usersResponse = await axios.get("/users");
+            setAllUsers(usersResponse.data);
+          } catch (err) {
+            console.error("Failed to fetch users:", err);
+            if (err.response?.status === 403) {
+              onError("Admin access required to view all users");
+            } else {
+              onError("Failed to fetch users. Please try again.");
+            }
+          }
+        }
       } catch (err) {
         console.error("Failed to fetch user data:", err);
         if (err.response?.status === 401) {
@@ -113,6 +133,29 @@ const UserProfilePage = ({
     });
   };
 
+  const handleDeleteUser = (user) => {
+    setUserToDelete(user);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    try {
+      await axios.delete(`/users/${userToDelete._id}`);
+      // Refresh the users list
+      const usersResponse = await axios.get("/users");
+      setAllUsers(usersResponse.data);
+      // Refresh the communities list
+      onCommunitiesUpdate();
+      setShowDeleteConfirm(false);
+      setUserToDelete(null);
+    } catch (err) {
+      console.error("Failed to delete user:", err);
+      onError(
+        err.response?.data?.error || "Failed to delete user. Please try again."
+      );
+    }
+  };
+
   if (isLoading) {
     return <div></div>;
   }
@@ -139,6 +182,14 @@ const UserProfilePage = ({
 
       <div className="profile-content">
         <div className="profile-tabs">
+          {currentUser.isAdmin && (
+            <button
+              className={activeTab === "users" ? "active" : ""}
+              onClick={() => setActiveTab("users")}
+            >
+              Users
+            </button>
+          )}
           <button
             className={activeTab === "posts" ? "active" : ""}
             onClick={() => setActiveTab("posts")}
@@ -160,6 +211,42 @@ const UserProfilePage = ({
         </div>
 
         <div className="profile-listings">
+          {!activeTab && <div className="no-tab-selected"></div>}
+          {activeTab === "users" && currentUser.isAdmin && (
+            <div className="users-listing">
+              {allUsers.length === 0 ? (
+                <p>No users found.</p>
+              ) : (
+                allUsers.map((user) => (
+                  <div key={user._id} className="listing-item">
+                    <div className="user-info">
+                      <span className="user-name">{user.displayName}</span>
+                      <span className="user-email">{user.email}</span>
+                      <span className="user-reputation">
+                        Reputation: {user.reputation}
+                      </span>
+                      <span className="user-role">
+                        {user.isAdmin ? "Admin" : "User"}
+                      </span>
+                      <span className="user-joined">
+                        Joined: {formatDate(user.createdAt)}
+                      </span>
+                    </div>
+                    <button
+                      className="button_style button_hover"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteUser(user);
+                      }}
+                    >
+                      Delete User
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
           {activeTab === "posts" && (
             <div className="posts-listing">
               {userPosts.length === 0 ? (
@@ -220,6 +307,30 @@ const UserProfilePage = ({
           )}
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="delete-confirm-dialog">
+          <div className="dialog-content">
+            <h3>Confirm Delete</h3>
+            <p>
+              Are you sure you want to delete user {userToDelete?.displayName}?
+              This will also delete all their communities, posts, and comments.
+              This action cannot be undone.
+            </p>
+            <div className="dialog-buttons">
+              <button onClick={confirmDeleteUser}>Delete</button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setUserToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -658,6 +658,7 @@ function App() {
         currentUser={currentUser}
         onError={handleError}
         onProfileClick={() => renderView("profile")}
+        isProfileActive={viewState.page === "profile"}
       />
       <Navbar
         communities={communities}

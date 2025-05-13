@@ -10,6 +10,7 @@ const Banner = ({
   currentUser,
   onError,
   onProfileClick,
+  isProfileActive,
 }) => {
   const [searchText, setSearchText] = useState("");
 
@@ -60,6 +61,10 @@ const Banner = ({
     isCreatePostActive ? "button_active" : ""
   } ${!isLoggedIn ? "button_disabled" : ""}`;
 
+  const profileClass = `button_style button_hover ${
+    isProfileActive ? "active" : ""
+  } ${!isLoggedIn ? "button_disabled" : ""}`;
+
   return (
     <div id="banner">
       <a
@@ -92,7 +97,7 @@ const Banner = ({
         </button>
         <button
           id="banner_profile"
-          className="button_style button_hover"
+          className={profileClass}
           onClick={onProfileClick}
           disabled={!isLoggedIn}
         >
