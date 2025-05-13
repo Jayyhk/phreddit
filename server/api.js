@@ -991,8 +991,8 @@ router.get("/users/:username", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Only allow users to view their own profile
-    if (user._id.toString() !== req.session.userID) {
+    // Allow users to view their own profile or admins to view any profile
+    if (user._id.toString() !== req.session.userID && !sessionUser.isAdmin) {
       console.log("User trying to view another user's profile");
       return res
         .status(403)
@@ -1020,13 +1020,18 @@ router.get("/users/:username/communities", async (req, res) => {
         .json({ error: "Must be logged in to view profile" });
     }
 
+    const sessionUser = await User.findById(req.session.userID);
+    if (!sessionUser) {
+      return res.status(401).json({ error: "User session invalid" });
+    }
+
     const user = await User.findOne({ displayName: req.params.username });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Only allow users to view their own communities
-    if (user._id.toString() !== req.session.userID) {
+    // Allow users to view their own communities or admins to view any user's communities
+    if (user._id.toString() !== req.session.userID && !sessionUser.isAdmin) {
       return res
         .status(403)
         .json({ error: "Cannot view other users' communities" });
@@ -1049,13 +1054,18 @@ router.get("/users/:username/posts", async (req, res) => {
         .json({ error: "Must be logged in to view profile" });
     }
 
+    const sessionUser = await User.findById(req.session.userID);
+    if (!sessionUser) {
+      return res.status(401).json({ error: "User session invalid" });
+    }
+
     const user = await User.findOne({ displayName: req.params.username });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Only allow users to view their own posts
-    if (user._id.toString() !== req.session.userID) {
+    // Allow users to view their own posts or admins to view any user's posts
+    if (user._id.toString() !== req.session.userID && !sessionUser.isAdmin) {
       return res.status(403).json({ error: "Cannot view other users' posts" });
     }
 
@@ -1076,13 +1086,18 @@ router.get("/users/:username/comments", async (req, res) => {
         .json({ error: "Must be logged in to view profile" });
     }
 
+    const sessionUser = await User.findById(req.session.userID);
+    if (!sessionUser) {
+      return res.status(401).json({ error: "User session invalid" });
+    }
+
     const user = await User.findOne({ displayName: req.params.username });
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Only allow users to view their own comments
-    if (user._id.toString() !== req.session.userID) {
+    // Allow users to view their own comments or admins to view any user's comments
+    if (user._id.toString() !== req.session.userID && !sessionUser.isAdmin) {
       return res
         .status(403)
         .json({ error: "Cannot view other users' comments" });

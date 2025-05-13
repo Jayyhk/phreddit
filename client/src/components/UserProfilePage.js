@@ -20,6 +20,15 @@ const UserProfilePage = ({
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  // Reset content when switching users
+  useEffect(() => {
+    setUserCommunities([]);
+    setUserPosts([]);
+    setUserComments([]);
+    setIsLoading(true);
+  }, [selectedUser]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -45,12 +54,14 @@ const UserProfilePage = ({
         }
 
         const response = await axios.get(
-          `/users/${encodeURIComponent(currentUser.displayName)}`
+          `/users/${encodeURIComponent(
+            selectedUser ? selectedUser.displayName : currentUser.displayName
+          )}`
         );
         setUserData(response.data);
 
-        // If user is admin, fetch all users
-        if (currentUser.isAdmin) {
+        // If user is admin and no user is selected, fetch all users
+        if (currentUser.isAdmin && !selectedUser) {
           try {
             const usersResponse = await axios.get("/users");
             setAllUsers(usersResponse.data);
@@ -86,15 +97,16 @@ const UserProfilePage = ({
           return;
         }
 
+        const targetUser = selectedUser || currentUser;
         const [communitiesRes, postsRes, commentsRes] = await Promise.all([
           axios.get(
-            `/users/${encodeURIComponent(currentUser.displayName)}/communities`
+            `/users/${encodeURIComponent(targetUser.displayName)}/communities`
           ),
           axios.get(
-            `/users/${encodeURIComponent(currentUser.displayName)}/posts`
+            `/users/${encodeURIComponent(targetUser.displayName)}/posts`
           ),
           axios.get(
-            `/users/${encodeURIComponent(currentUser.displayName)}/comments`
+            `/users/${encodeURIComponent(targetUser.displayName)}/comments`
           ),
         ]);
         setUserCommunities(communitiesRes.data);
@@ -121,7 +133,7 @@ const UserProfilePage = ({
 
     fetchUserData();
     fetchUserContent();
-  }, [currentUser, onError]);
+  }, [currentUser, onError, selectedUser]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -155,6 +167,18 @@ const UserProfilePage = ({
     }
   };
 
+  const handleViewUserProfile = (user) => {
+    setIsLoading(true);
+    setSelectedUser(user);
+    setActiveTab("posts"); // Default to posts tab when viewing another user
+  };
+
+  const handleBackToAdminView = () => {
+    setIsLoading(true);
+    setSelectedUser(null);
+    setActiveTab("users");
+  };
+
   if (isLoading) {
     return <div></div>;
   }
@@ -176,12 +200,21 @@ const UserProfilePage = ({
               : "Loading..."}
           </p>
           <p>Reputation: {userData?.reputation || 0}</p>
+          {selectedUser && (
+            <button
+              className="button_style button_hover"
+              onClick={handleBackToAdminView}
+              style={{ marginTop: "10px" }}
+            >
+              Back to Admin View
+            </button>
+          )}
         </div>
       </div>
 
       <div className="profile-content">
         <div className="profile-tabs">
-          {currentUser.isAdmin && (
+          {currentUser.isAdmin && !selectedUser && (
             <button
               className={activeTab === "users" ? "active" : ""}
               onClick={() => setActiveTab("users")}
@@ -211,7 +244,7 @@ const UserProfilePage = ({
 
         <div className="profile-listings">
           {!activeTab && <div className="no-tab-selected"></div>}
-          {activeTab === "users" && currentUser.isAdmin && (
+          {activeTab === "users" && currentUser.isAdmin && !selectedUser && (
             <div className="users-listing">
               {allUsers.length === 0 ? (
                 <div className="no-posts">
@@ -221,7 +254,11 @@ const UserProfilePage = ({
               ) : (
                 allUsers.map((user) => (
                   <div key={user._id} className="listing-item">
-                    <div className="user-info">
+                    <div
+                      className="user-info"
+                      onClick={() => handleViewUserProfile(user)}
+                      style={{ cursor: "pointer" }}
+                    >
                       <span className="user-name">{user.displayName}</span>
                       <span className="user-email">{user.email}</span>
                       <span className="user-reputation">

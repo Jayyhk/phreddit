@@ -595,6 +595,11 @@ function App() {
           currentUser={currentUser}
           onError={handleError}
           onCommunitiesUpdate={refreshCommunities}
+          onEditPost={(post) => renderView("create-post", { post })}
+          onEditComment={(comment) => renderView("create-comment", { comment })}
+          onEditCommunity={(community) =>
+            renderView("create-community", { community })
+          }
         />
       );
       break;
