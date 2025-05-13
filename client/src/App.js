@@ -333,8 +333,7 @@ function App() {
             communities={communities}
             onEngender={async (data) => {
               try {
-                const r = await axios.put(`/communities/${data._id}`, data);
-                // Fetch fresh communities list to get proper isMember flags
+                await axios.put(`/communities/${data._id}`, data);
                 const communitiesResponse = await axios.get("/communities");
                 setCommunities(communitiesResponse.data);
                 renderView("profile");
@@ -345,11 +344,16 @@ function App() {
               }
             }}
             onDeleteCommunity={async (id) => {
-              // delete on the server
-              await axios.delete(`/communities/${id}`);
-              // refresh global list & go back to profile
-              await refreshCommunities();
-              renderView("profile");
+              try {
+                await axios.delete(`/communities/${id}`);
+                await refreshCommunities();
+                renderView("profile");
+              } catch (err) {
+                handleError(
+                  err.response?.data?.error ||
+                    "Failed to delete community. Please try again."
+                );
+              }
             }}
             onError={handleError}
           />
@@ -362,7 +366,6 @@ function App() {
             onEngender={async (data) => {
               try {
                 const r = await axios.post("/communities", data);
-                // Fetch fresh communities list to get proper isMember flags
                 const communitiesResponse = await axios.get("/communities");
                 setCommunities(communitiesResponse.data);
                 renderView("community", { communityID: r.data._id });
@@ -389,7 +392,6 @@ function App() {
             onSubmit={async (data) => {
               try {
                 const r = await axios.put(`/posts/${data._id}`, data);
-                // Update local state with the response data
                 setPosts((prevPosts) =>
                   prevPosts.map((p) => (p._id === data._id ? r.data : p))
                 );
@@ -403,7 +405,6 @@ function App() {
             onDeletePost={async (id) => {
               try {
                 await axios.delete(`/posts/${id}`);
-                // Refresh posts list
                 const postsResponse = await axios.get("/posts");
                 setPosts(postsResponse.data);
                 renderView("profile");
@@ -425,7 +426,6 @@ function App() {
             currentUser={currentUser}
             onSubmit={async (data) => {
               try {
-                // First verify the community exists
                 const community = communities.find(
                   (c) => c._id === data.communityID
                 );
@@ -433,7 +433,6 @@ function App() {
                   throw new Error("Selected community not found");
                 }
 
-                // Create link flair if needed
                 let flairID = data.selectedLinkFlairID;
                 if (!flairID && data.newLinkFlair) {
                   const r1 = await axios.post("/linkflairs", {
@@ -443,14 +442,12 @@ function App() {
                   setLinkFlairs((prev) => [r1.data, ...prev]);
                 }
 
-                // Create the post
                 const postData = {
                   title: data.title,
                   content: data.content,
                   postedBy: data.postedBy,
                 };
 
-                // Only add linkFlairID if it exists
                 if (flairID) {
                   postData.linkFlairID = flairID;
                 }
@@ -458,12 +455,10 @@ function App() {
                 const r2 = await axios.post("/posts", postData);
                 const newPost = r2.data;
 
-                // Add post to community
                 await axios.post(`/communities/${data.communityID}/add-post`, {
                   postID: newPost._id,
                 });
 
-                // Update local state
                 setPosts((prev) => [newPost, ...prev]);
                 setCommunities((prev) =>
                   prev.map((c) =>
@@ -473,7 +468,6 @@ function App() {
                   )
                 );
 
-                // Navigate to the new post
                 renderView("post", { postID: newPost._id });
               } catch (err) {
                 console.error("Failed to create post:", err);
@@ -498,7 +492,7 @@ function App() {
             currentUser={currentUser}
             onSubmit={async (data) => {
               try {
-                const r = await axios.put(`/comments/${data._id}`, {
+                await axios.put(`/comments/${data._id}`, {
                   content: data.content,
                   commentedBy: data.commentedBy,
                 });

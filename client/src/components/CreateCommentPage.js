@@ -44,29 +44,37 @@ const CreateCommentPage = ({ onSubmit, currentUser, onError }) => {
   };
 
   return (
-    <div id="create_comment_page">
-      <div id="create_comment_content_container">
-        <div id="create_comment_content">Comment Content (required)</div>
-        <input
-          id="create_comment_content_input"
-          type="text"
-          placeholder="Enter Comment Content (Max 500 characters)"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          required
-        />
-        {errors.content && (
-          <div className="create_comment_error">{errors.content}</div>
-        )}
-      </div>
-      <div style={{ marginTop: "20px" }}>
-        <button
-          className="button_style button_hover"
-          id="post_comment"
-          onClick={handleSubmit}
-        >
-          Submit Comment
-        </button>
+    <div className="create-comment-container">
+      <h1
+        style={{ fontSize: "24px", color: "#FF4500" }}
+        className="create-comment-header"
+      >
+        Create New Comment
+      </h1>
+      <div id="create_comment_page">
+        <div id="create_comment_content_container">
+          <div id="create_comment_content">Comment Content (required)</div>
+          <input
+            id="create_comment_content_input"
+            type="text"
+            placeholder="Enter Comment Content (Max 500 characters)"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            required
+          />
+          {errors.content && (
+            <div className="create_comment_error">{errors.content}</div>
+          )}
+        </div>
+        <div style={{ marginTop: "20px" }}>
+          <button
+            className="button_style button_hover"
+            id="post_comment"
+            onClick={handleSubmit}
+          >
+            Submit Comment
+          </button>
+        </div>
       </div>
     </div>
   );

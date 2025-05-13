@@ -76,62 +76,70 @@ const EditCommentPage = ({
   };
 
   return (
-    <div id="create_comment_page">
-      <div id="create_comment_content_container">
-        <div id="create_comment_content">Comment Content (required)</div>
-        <input
-          id="create_comment_content_input"
-          type="text"
-          placeholder="Enter Comment Content (Max 500 characters)"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          required
-        />
-        {errors.content && (
-          <div className="create_comment_error">{errors.content}</div>
-        )}
-      </div>
-      <div
-        style={{
-          marginTop: "20px",
-          display: "flex",
-          gap: "10px",
-          justifyContent: "flex-start",
-        }}
+    <div className="create-comment-container">
+      <h1
+        style={{ fontSize: "24px", color: "#FF4500" }}
+        className="create-comment-header"
       >
-        <button
-          className="button_style button_hover"
-          id="update_comment"
-          onClick={handleSubmit}
+        Edit Comment
+      </h1>
+      <div id="create_comment_page">
+        <div id="create_comment_content_container">
+          <div id="create_comment_content">Comment Content (required)</div>
+          <input
+            id="create_comment_content_input"
+            type="text"
+            placeholder="Enter Comment Content (Max 500 characters)"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            required
+          />
+          {errors.content && (
+            <div className="create_comment_error">{errors.content}</div>
+          )}
+        </div>
+        <div
+          style={{
+            marginTop: "20px",
+            display: "flex",
+            gap: "10px",
+            justifyContent: "flex-start",
+          }}
         >
-          Update Comment
-        </button>
-        <button
-          className="button_style button_hover"
-          id="delete_comment"
-          onClick={handleDelete}
-        >
-          Delete Comment
-        </button>
-      </div>
+          <button
+            className="button_style button_hover"
+            id="update_comment"
+            onClick={handleSubmit}
+          >
+            Update Comment
+          </button>
+          <button
+            className="button_style button_hover"
+            id="delete_comment"
+            onClick={handleDelete}
+          >
+            Delete Comment
+          </button>
+        </div>
 
-      {showDeleteConfirm && (
-        <div className="delete-confirm-dialog">
-          <div className="dialog-content">
-            <h3>Confirm Delete</h3>
-            <p>
-              Are you sure you want to delete this comment? This action cannot
-              be undone.
-            </p>
-            <div className="dialog-buttons">
-              <button onClick={confirmDelete}>Delete</button>
-              <button onClick={() => setShowDeleteConfirm(false)}>
-                Cancel
-              </button>
+        {showDeleteConfirm && (
+          <div className="delete-confirm-dialog">
+            <div className="dialog-content">
+              <h3>Confirm Delete</h3>
+              <p>
+                Are you sure you want to delete this comment? This action cannot
+                be undone.
+              </p>
+              <div className="dialog-buttons">
+                <button onClick={confirmDelete}>Delete</button>
+                <button onClick={() => setShowDeleteConfirm(false)}>
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
