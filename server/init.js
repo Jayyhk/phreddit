@@ -1,7 +1,7 @@
-// The initial data must contain the user profile for admin. The 
-// email address, display name, and password for an admin user must be 
-// provided as the command-line arguments to server/init.js. You must 
-// use these credentials to create a user profile for admin in the 
+// The initial data must contain the user profile for admin. The
+// email address, display name, and password for an admin user must be
+// provided as the command-line arguments to server/init.js. You must
+// use these credentials to create a user profile for admin in the
 // database
 // TODO: Create a user profile for admin in the database
 
@@ -132,6 +132,7 @@ async function initializeDatabase() {
           users[3].displayName,
           admin.displayName,
         ],
+        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
       },
       {
         name: "Science",
@@ -142,6 +143,7 @@ async function initializeDatabase() {
           users[2].displayName,
           users[4].displayName,
         ],
+        startDate: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // 45 days ago
       },
       {
         name: "Programming",
@@ -153,6 +155,7 @@ async function initializeDatabase() {
           users[2].displayName,
           users[3].displayName,
         ],
+        startDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
       },
       {
         name: "Web Development",
@@ -163,6 +166,7 @@ async function initializeDatabase() {
           users[1].displayName,
           users[4].displayName,
         ],
+        startDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
       },
       {
         name: "Data Science",
@@ -173,11 +177,12 @@ async function initializeDatabase() {
           users[2].displayName,
           admin.displayName,
         ],
+        startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
       },
     ]);
     console.log("Created communities");
 
-    // Create posts
+    // Create posts with varied dates and engagement
     const posts = await PostModel.create([
       {
         title: "New JavaScript Framework Released",
@@ -190,9 +195,12 @@ async function initializeDatabase() {
           users[1].displayName,
           admin.displayName,
           users[3].displayName,
+          users[4].displayName,
+          users[5].displayName,
         ],
-        downvoters: [users[4].displayName],
-        views: 1250,
+        downvoters: [users[2].displayName],
+        views: 3250,
+        postedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
       },
       {
         title: "Help with React Hooks",
@@ -201,9 +209,14 @@ async function initializeDatabase() {
         postedBy: users[1].displayName,
         communityID: communities[2]._id,
         linkFlairID: flairs[1]._id,
-        upvoters: [users[0].displayName, users[3].displayName],
-        downvoters: [],
-        views: 850,
+        upvoters: [
+          users[0].displayName,
+          users[3].displayName,
+          users[4].displayName,
+        ],
+        downvoters: [users[2].displayName],
+        views: 1850,
+        postedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
       },
       {
         title: "Latest Scientific Discovery",
@@ -215,9 +228,13 @@ async function initializeDatabase() {
           users[0].displayName,
           users[1].displayName,
           users[5].displayName,
+          users[2].displayName,
+          users[3].displayName,
+          users[4].displayName,
         ],
         downvoters: [],
-        views: 2100,
+        views: 4100,
+        postedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
       },
       {
         title: "My First Full-Stack Project",
@@ -230,9 +247,11 @@ async function initializeDatabase() {
           users[0].displayName,
           users[1].displayName,
           users[4].displayName,
+          admin.displayName,
         ],
-        downvoters: [],
-        views: 750,
+        downvoters: [users[2].displayName],
+        views: 1750,
+        postedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
       },
       {
         title: "Understanding Machine Learning Basics",
@@ -245,9 +264,11 @@ async function initializeDatabase() {
           admin.displayName,
           users[2].displayName,
           users[4].displayName,
+          users[0].displayName,
         ],
-        downvoters: [],
-        views: 1500,
+        downvoters: [users[1].displayName],
+        views: 2500,
+        postedDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
       },
       {
         title: "Showcase: My Portfolio Website",
@@ -256,106 +277,148 @@ async function initializeDatabase() {
         postedBy: users[4].displayName,
         communityID: communities[3]._id,
         linkFlairID: flairs[5]._id,
-        upvoters: [users[3].displayName, users[1].displayName],
-        downvoters: [],
-        views: 600,
+        upvoters: [
+          users[3].displayName,
+          users[1].displayName,
+          admin.displayName,
+        ],
+        downvoters: [users[2].displayName],
+        views: 1600,
+        postedDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), // 6 days ago
       },
     ]);
     console.log("Created posts");
 
-    // Create comments (including nested replies)
+    // Create comments with varied dates and engagement
     const comments = await CommentModel.create([
       // First post comments
       {
         content: "This is really interesting! Thanks for sharing.",
         commentedBy: users[1].displayName,
-        upvoters: [users[0].displayName, users[3].displayName],
-        downvoters: [],
+        upvoters: [
+          users[0].displayName,
+          users[3].displayName,
+          admin.displayName,
+        ],
+        downvoters: [users[2].displayName],
+        commentedDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
       },
       {
         content: "I've been using this framework for a while now, it's great!",
         commentedBy: admin.displayName,
-        upvoters: [users[0].displayName, users[1].displayName],
+        upvoters: [
+          users[0].displayName,
+          users[1].displayName,
+          users[4].displayName,
+        ],
         downvoters: [],
+        commentedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
       },
       // Second post comments
       {
         content: "Here's a detailed explanation of useEffect...",
         commentedBy: users[0].displayName,
-        upvoters: [users[1].displayName, users[3].displayName],
-        downvoters: [],
+        upvoters: [
+          users[1].displayName,
+          users[3].displayName,
+          users[4].displayName,
+        ],
+        downvoters: [users[2].displayName],
+        commentedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
       },
       {
         content: "Thanks for the explanation! This really helps.",
         commentedBy: users[1].displayName,
-        upvoters: [users[0].displayName],
+        upvoters: [users[0].displayName, admin.displayName],
         downvoters: [],
+        commentedDate: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
       },
       // Third post comments
       {
         content:
           "This is groundbreaking! Can't wait to see more research in this area.",
         commentedBy: users[5].displayName,
-        upvoters: [admin.displayName, users[2].displayName],
-        downvoters: [],
+        upvoters: [
+          admin.displayName,
+          users[2].displayName,
+          users[3].displayName,
+        ],
+        downvoters: [users[1].displayName],
+        commentedDate: new Date(Date.now() - 18 * 60 * 60 * 1000), // 18 hours ago
       },
       {
         content: "I have some questions about the methodology...",
         commentedBy: users[2].displayName,
-        upvoters: [users[5].displayName],
-        downvoters: [],
+        upvoters: [users[5].displayName, admin.displayName],
+        downvoters: [users[4].displayName],
+        commentedDate: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
       },
       // Fourth post comments
       {
         content: "Great job! What was the most challenging part?",
         commentedBy: users[4].displayName,
-        upvoters: [users[3].displayName],
+        upvoters: [users[3].displayName, admin.displayName],
         downvoters: [],
+        commentedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
       },
       {
         content:
           "The authentication system was definitely the trickiest part to implement.",
         commentedBy: users[3].displayName,
-        upvoters: [users[4].displayName, users[1].displayName],
-        downvoters: [],
+        upvoters: [
+          users[4].displayName,
+          users[1].displayName,
+          admin.displayName,
+        ],
+        downvoters: [users[2].displayName],
+        commentedDate: new Date(Date.now() - 36 * 60 * 60 * 1000), // 36 hours ago
       },
       // Fifth post comments
       {
         content:
           "This is exactly what I needed! Do you have any recommended resources?",
         commentedBy: users[2].displayName,
-        upvoters: [users[5].displayName, admin.displayName],
-        downvoters: [],
+        upvoters: [
+          users[5].displayName,
+          admin.displayName,
+          users[0].displayName,
+        ],
+        downvoters: [users[1].displayName],
+        commentedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
       },
       {
         content:
           "I'll share some great learning materials in a follow-up post.",
         commentedBy: users[5].displayName,
-        upvoters: [users[2].displayName],
+        upvoters: [users[2].displayName, users[4].displayName],
         downvoters: [],
+        commentedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
       },
     ]);
     console.log("Created comments");
 
-    // Create reply comments
+    // Create reply comments with varied dates and engagement
     const replies = await CommentModel.create([
       {
         content: "I agree! The documentation is excellent.",
         commentedBy: users[3].displayName,
-        upvoters: [users[1].displayName],
-        downvoters: [],
+        upvoters: [users[1].displayName, admin.displayName],
+        downvoters: [users[2].displayName],
+        commentedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
       },
       {
         content: "Have you tried the new features in version 2.0?",
         commentedBy: users[4].displayName,
-        upvoters: [admin.displayName],
+        upvoters: [admin.displayName, users[0].displayName],
         downvoters: [],
+        commentedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
       },
       {
         content: "Could you elaborate on the performance improvements?",
         commentedBy: users[2].displayName,
-        upvoters: [users[0].displayName],
-        downvoters: [],
+        upvoters: [users[0].displayName, users[1].displayName],
+        downvoters: [users[4].displayName],
+        commentedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
       },
     ]);
     console.log("Created reply comments");

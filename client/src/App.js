@@ -209,8 +209,17 @@ function App() {
 
   const renderView = (page, params = {}) => {
     if (["home", "community", "search"].includes(page)) setSortType("newest");
-    setViewState({ page, ...params });
-    window.scrollTo(0, 0);
+    if (page === "profile") {
+      // Force a refresh of the profile page by first setting to a different page
+      setViewState({ page: "home" });
+      setTimeout(() => {
+        setViewState({ page: "profile" });
+        window.scrollTo(0, 0);
+      }, 0);
+    } else {
+      setViewState({ page, ...params });
+      window.scrollTo(0, 0);
+    }
   };
 
   const sortPosts = (list, mode) => {
