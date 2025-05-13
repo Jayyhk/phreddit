@@ -14,7 +14,13 @@ const UserSchema = new Schema(
     },
     displayName: { type: String, required: true, unique: true, trim: true },
     passwordHash: { type: String, required: true },
-    reputation: { type: Number, default: 100 }, // regular users start at 100
+    isAdmin: { type: Boolean, default: false },
+    reputation: {
+      type: Number,
+      default: function () {
+        return this.isAdmin ? 1000 : 100;
+      },
+    },
   },
   { timestamps: true }
 );
