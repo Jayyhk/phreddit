@@ -13,9 +13,10 @@ In the sections below, list and describe each contribution briefly.
 ## Team Member 1 Contribution
 Jake Mallen
 
-- Use cases 1-10
+- Use cases 1-19
 
 ## Team Member 2 Contribution
 Catherine Park
 
-- Use cases 11-19
+- Jest tests
+- UML diagrams

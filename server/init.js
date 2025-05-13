@@ -1,9 +1,5 @@
-// The initial data must contain the user profile for admin. The
-// email address, display name, and password for an admin user must be
-// provided as the command-line arguments to server/init.js. You must
-// use these credentials to create a user profile for admin in the
-// database
-// TODO: Create a user profile for admin in the database
+// init.js
+/* global process */
 
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
