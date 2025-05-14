@@ -13,20 +13,24 @@ const Navbar = ({
   onError,
 }) => {
   const [sortedCommunities, setSortedCommunities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const sorted = [...communities].sort((a, b) => {
-      // If user is logged in, prioritize joined communities
-      if (isLoggedIn) {
-        if (a.isMember && !b.isMember) return -1;
-        if (!a.isMember && b.isMember) return 1;
-      }
-      // Then sort alphabetically, with null check for names
-      const nameA = a.name || "";
-      const nameB = b.name || "";
-      return nameA.localeCompare(nameB);
-    });
-    setSortedCommunities(sorted);
+    if (communities.length > 0) {
+      const sorted = [...communities].sort((a, b) => {
+        // If user is logged in, prioritize joined communities
+        if (isLoggedIn) {
+          if (a.isMember && !b.isMember) return -1;
+          if (!a.isMember && b.isMember) return 1;
+        }
+        // Then sort alphabetically, with null check for names
+        const nameA = a.name || "";
+        const nameB = b.name || "";
+        return nameA.localeCompare(nameB);
+      });
+      setSortedCommunities(sorted);
+      setIsLoading(false);
+    }
   }, [communities, isLoggedIn, currentUser]);
 
   const handleCreateCommunity = () => {
@@ -62,6 +66,10 @@ const Navbar = ({
   // Group communities into joined and other
   const joinedCommunities = sortedCommunities.filter((c) => c.isMember);
   const otherCommunities = sortedCommunities.filter((c) => !c.isMember);
+
+  if (isLoading) {
+    return <div></div>;
+  }
 
   return (
     <nav id="navbar">

@@ -105,9 +105,11 @@ const HomePage = ({
           <span className="view_count">
             {post.views} {viewString}
           </span>
-          <span className="comment_count">
-            {commentCount} {commentString}
-          </span>
+          {commentCount != null && (
+            <span className="comment_count">
+              {commentCount} {commentString}
+            </span>
+          )}
         </div>
       </div>
     );

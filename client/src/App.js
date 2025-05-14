@@ -29,6 +29,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [viewState, setViewState] = useState({ page: "login" });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const handleCancelRegister = () => setViewState({ page: "login" });
 
   // Add session check on initial load
@@ -43,6 +44,8 @@ function App() {
       } catch (err) {
         console.error("Session check failed:", err);
         setViewState({ page: "login" });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -276,7 +279,8 @@ function App() {
     renderView("post", { postID });
   };
 
-  const getCommentCount = (postID) => commentCounts[postID] || 0;
+  const getCommentCount = (postID) =>
+    commentCounts.hasOwnProperty(postID) ? commentCounts[postID] : null;
   const getLinkFlairContent = (linkFlairID) => {
     const lf = linkFlairs.find((l) => l._id === linkFlairID);
     return lf ? lf.content : "";
@@ -639,6 +643,10 @@ function App() {
     viewState.page === "community" ? viewState.communityID : null;
 
   // --- AUTHENTICATION FLOWS ---
+  if (isLoading) {
+    return <div></div>;
+  }
+
   if (!currentUser) {
     if (viewState.page === "register") {
       return (
