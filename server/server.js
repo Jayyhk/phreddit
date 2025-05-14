@@ -5,7 +5,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const session = require("express-session");
-const MongoStore = require("connect-mongo");
 const apiRouter = require("./api");
 
 const app = express();
@@ -26,10 +25,6 @@ app.use(
     secret: process.env.SESSION_SECRET || "dev-secret",
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: "mongodb://127.0.0.1:27017/phreddit",
-      ttl: 24 * 60 * 60,
-    }),
     cookie: {
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
