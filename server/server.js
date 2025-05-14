@@ -14,7 +14,7 @@ const PORT = 8000;
 // --- Middleware ---
 app.use(
   cors({
-    origin: "http://localhost:3000", // your React app origin
+    origin: "http://localhost:3000",
     credentials: true, // allow cookies to be sent
   })
 );

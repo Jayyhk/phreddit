@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { validateHyperlinks } from "./Helpers";
-import axios from "axios";
 
 const EditCommunityPage = ({
   community,
