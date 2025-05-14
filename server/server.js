@@ -51,6 +51,8 @@ const server = app.listen(PORT, () =>
   console.log(`Listening on http://localhost:${PORT}`)
 );
 
+module.exports = server;
+
 // --- Graceful Shutdown ---
 process.on("SIGINT", () => {
   server.close(async () => {
