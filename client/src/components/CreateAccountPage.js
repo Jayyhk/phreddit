@@ -67,7 +67,7 @@ export default function CreateAccountPage({ onRegistered, onCancel, onError }) {
 
   return (
     <div className="form-container">
-      <h2>Create Account</h2>
+      <h2>Sign Up</h2>
       <form onSubmit={handleSubmit}>
         {[
           { name: "firstName", label: "First Name", type: "text" },

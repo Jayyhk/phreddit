@@ -133,7 +133,7 @@ export default function WelcomePage({ onLogin, onRegister, onGuest }) {
             className="welcome-button button_style button_hover"
             onClick={onRegister}
           >
-            Create Account
+            Sign Up
           </button>
         </div>
       </div>

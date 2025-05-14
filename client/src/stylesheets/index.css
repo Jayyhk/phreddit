@@ -875,7 +875,7 @@ body:has(.form-container) {
 
 .form-container {
   max-width: 400px;
-  margin: 15vh auto;
+  margin: 7vh auto;
   padding: 1rem;
   border: 1px solid #ddd;
   border-radius: 4px;
