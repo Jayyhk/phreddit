@@ -95,28 +95,23 @@ export default function CreateAccountPage({ onRegistered, onCancel, onError }) {
             )}
           </div>
         ))}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "15px",
-          }}
-        >
-          <button
-            type="submit"
-            className="button_style button_hover full-width"
-            disabled={submitting}
-          >
-            {submitting ? "Creating Account…" : "Sign Up"}
-          </button>
-          <button
-            type="button"
-            className="button_style button_hover"
-            onClick={onCancel}
-          >
-            Back to Login
-          </button>
+        <div className="signup-footer">
+          <div className="footer-buttons">
+            <button
+              type="submit"
+              className="button_style button_hover"
+              disabled={submitting}
+            >
+              {submitting ? "Creating Account…" : "Sign Up"}
+            </button>
+            <button
+              type="button"
+              className="button_style button_hover"
+              onClick={onCancel}
+            >
+              Back
+            </button>
+          </div>
         </div>
       </form>
     </div>

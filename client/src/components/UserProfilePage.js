@@ -18,6 +18,7 @@ const UserProfilePage = ({
   const [userComments, setUserComments] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUsersLoading, setIsUsersLoading] = useState(true); // new flag
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -33,99 +34,86 @@ const UserProfilePage = ({
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        if (!currentUser || !currentUser.displayName) {
-          console.error("Current user data:", currentUser);
+        if (!currentUser?.displayName) {
           onError("Please log in to view your profile");
           return;
         }
-
-        // First verify the session is valid
+        // verify session
         try {
-          const sessionCheck = await axios.get("/me");
-          if (!sessionCheck.data.user) {
-            console.error("No valid session found");
+          const session = await axios.get("/me");
+          if (!session.data.user) {
             onError("Your session has expired. Please log in again.");
             return;
           }
-        } catch (err) {
-          console.error("Session check failed:", err);
+        } catch {
           onError("Your session has expired. Please log in again.");
           return;
         }
 
-        const response = await axios.get(
+        // fetch profile
+        const resp = await axios.get(
           `/users/${encodeURIComponent(
             selectedUser ? selectedUser.displayName : currentUser.displayName
           )}`
         );
-        setUserData(response.data);
+        setUserData(resp.data);
 
-        // If user is admin and no user is selected, fetch all users
+        // if admin, fetch all users
         if (currentUser.isAdmin && !selectedUser) {
+          setIsUsersLoading(true);
           try {
-            const usersResponse = await axios.get("/users");
-            setAllUsers(usersResponse.data);
+            const usersResp = await axios.get("/users");
+            setAllUsers(usersResp.data);
           } catch (err) {
             console.error("Failed to fetch users:", err);
-            if (err.response?.status === 403) {
+            if (err.response?.status === 403)
               onError("Admin access required to view all users");
-            } else {
-              onError("Failed to fetch users. Please try again.");
-            }
+            else onError("Failed to fetch users. Please try again.");
+          } finally {
+            setIsUsersLoading(false);
           }
         }
       } catch (err) {
         console.error("Failed to fetch user data:", err);
-        if (err.response?.status === 401) {
-          onError("Please log in to view your profile");
-        } else if (err.response?.status === 403) {
-          onError("You can only view your own profile");
-        } else if (err.response?.status === 404) {
-          onError("User profile not found");
-        } else {
+        const status = err.response?.status;
+        if (status === 401) onError("Please log in to view your profile");
+        else if (status === 403) onError("You can only view your own profile");
+        else if (status === 404) onError("User profile not found");
+        else
           onError(
             err.response?.data?.error ||
               "Failed to load user data. Please try again."
           );
-        }
       }
     };
 
     const fetchUserContent = async () => {
       try {
-        if (!currentUser || !currentUser.displayName) {
-          return;
-        }
-
-        const targetUser = selectedUser || currentUser;
-        const [communitiesRes, postsRes, commentsRes] = await Promise.all([
+        if (!currentUser?.displayName) return;
+        const target = selectedUser || currentUser;
+        const [comRes, postRes, comtRes] = await Promise.all([
           axios.get(
-            `/users/${encodeURIComponent(targetUser.displayName)}/communities`
+            `/users/${encodeURIComponent(target.displayName)}/communities`
           ),
+          axios.get(`/users/${encodeURIComponent(target.displayName)}/posts`),
           axios.get(
-            `/users/${encodeURIComponent(targetUser.displayName)}/posts`
-          ),
-          axios.get(
-            `/users/${encodeURIComponent(targetUser.displayName)}/comments`
+            `/users/${encodeURIComponent(target.displayName)}/comments`
           ),
         ]);
-        setUserCommunities(communitiesRes.data);
-        setUserPosts(postsRes.data);
-        setUserComments(commentsRes.data);
+        setUserCommunities(comRes.data);
+        setUserPosts(postRes.data);
+        setUserComments(comtRes.data);
       } catch (err) {
         console.error("Failed to fetch user content:", err);
-        if (err.response?.status === 401) {
-          onError("Please log in to view your profile");
-        } else if (err.response?.status === 403) {
-          onError("You can only view your own content");
-        } else if (err.response?.status === 404) {
-          onError("User content not found");
-        } else {
+        const status = err.response?.status;
+        if (status === 401) onError("Please log in to view your profile");
+        else if (status === 403) onError("You can only view your own content");
+        else if (status === 404) onError("User content not found");
+        else
           onError(
             err.response?.data?.error ||
               "Failed to load user content. Please try again."
           );
-        }
       } finally {
         setIsLoading(false);
       }
@@ -135,27 +123,22 @@ const UserProfilePage = ({
     fetchUserContent();
   }, [currentUser, onError, selectedUser]);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+  const formatDate = (d) =>
+    new Date(d).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
-  };
 
   const handleDeleteUser = (user) => {
     setUserToDelete(user);
     setShowDeleteConfirm(true);
   };
-
   const confirmDeleteUser = async () => {
     try {
       await axios.delete(`/users/${userToDelete._id}`);
-      // Refresh the users list
-      const usersResponse = await axios.get("/users");
-      setAllUsers(usersResponse.data);
-      // Refresh the communities list
+      const refreshed = await axios.get("/users");
+      setAllUsers(refreshed.data);
       onCommunitiesUpdate();
       setShowDeleteConfirm(false);
       setUserToDelete(null);
@@ -170,41 +153,29 @@ const UserProfilePage = ({
   const handleViewUserProfile = (user) => {
     setIsLoading(true);
     setSelectedUser(user);
-    setActiveTab("posts"); // Default to posts tab when viewing another user
+    setActiveTab("posts");
   };
-
   const handleBackToAdminView = () => {
     setIsLoading(true);
     setSelectedUser(null);
     setActiveTab("users");
   };
 
-  if (isLoading) {
-    return <div></div>;
-  }
-
-  if (!userData) {
-    return <div></div>;
-  }
+  if (isLoading || !userData) return <div></div>;
 
   return (
     <div className="profile-page">
       <div className="profile-header">
-        <h1>{userData?.displayName || "Loading..."}</h1>
+        <h1>{userData.displayName}</h1>
         <div className="profile-info">
-          <p>Email: {userData?.email || "Loading..."}</p>
-          <p>
-            Member since:{" "}
-            {userData?.createdAt
-              ? formatDate(userData.createdAt)
-              : "Loading..."}
-          </p>
-          <p>Reputation: {userData?.reputation || 0}</p>
+          <p>Email: {userData.email}</p>
+          <p>Member since: {formatDate(userData.createdAt)}</p>
+          <p>Reputation: {userData.reputation}</p>
           {selectedUser && (
             <button
               className="button_style button_hover"
               onClick={handleBackToAdminView}
-              style={{ marginTop: "10px" }}
+              style={{ marginTop: 10 }}
             >
               Back to Admin View
             </button>
@@ -243,10 +214,11 @@ const UserProfilePage = ({
         </div>
 
         <div className="profile-listings">
-          {!activeTab && <div className="no-tab-selected"></div>}
           {activeTab === "users" && currentUser.isAdmin && !selectedUser && (
             <div className="users-listing">
-              {allUsers.length === 0 ? (
+              {isUsersLoading ? (
+                <div className="loading-placeholder"></div>
+              ) : allUsers.length === 0 ? (
                 <div className="no-posts">
                   <p>No users found in the system.</p>
                   <p>Users will appear here once they create accounts.</p>
@@ -256,8 +228,8 @@ const UserProfilePage = ({
                   <div key={user._id} className="listing-item">
                     <div
                       className="user-info"
-                      onClick={() => handleViewUserProfile(user)}
                       style={{ cursor: "pointer" }}
+                      onClick={() => handleViewUserProfile(user)}
                     >
                       <span className="user-name">{user.displayName}</span>
                       <span className="user-email">{user.email}</span>
@@ -285,7 +257,6 @@ const UserProfilePage = ({
               )}
             </div>
           )}
-
           {activeTab === "posts" && (
             <div className="posts-listing">
               {userPosts.length === 0 ? (
@@ -302,8 +273,7 @@ const UserProfilePage = ({
                 ))
               )}
             </div>
-          )}
-
+          )}{" "}
           {activeTab === "communities" && (
             <div className="communities-listing">
               {userCommunities.length === 0 ? (
@@ -320,8 +290,7 @@ const UserProfilePage = ({
                 ))
               )}
             </div>
-          )}
-
+          )}{" "}
           {activeTab === "comments" && (
             <div className="comments-listing">
               {userComments.length === 0 ? (
@@ -343,7 +312,7 @@ const UserProfilePage = ({
                 ))
               )}
             </div>
-          )}
+          )}{" "}
         </div>
       </div>
 
@@ -353,17 +322,11 @@ const UserProfilePage = ({
             <h3>Confirm Delete</h3>
             <p>
               Are you sure you want to delete user {userToDelete?.displayName}?
-              This will also delete all their communities, posts, and comments.
               This action cannot be undone.
             </p>
             <div className="dialog-buttons">
               <button onClick={confirmDeleteUser}>Delete</button>
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setUserToDelete(null);
-                }}
-              >
+              <button onClick={() => setShowDeleteConfirm(false)}>
                 Cancel
               </button>
             </div>

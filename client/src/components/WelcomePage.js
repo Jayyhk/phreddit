@@ -5,7 +5,8 @@ import axios from "axios";
 
 axios.defaults.withCredentials = true;
 
-export default function WelcomePage({ onLogin, onRegister, onGuest, onError }) {
+export default function WelcomePage({ onLogin, onRegister, onGuest }) {
+  const [showLoginForm, setShowLoginForm] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [serverMsg, setServerMsg] = useState("");
@@ -42,13 +43,11 @@ export default function WelcomePage({ onLogin, onRegister, onGuest, onError }) {
       const errorMsg =
         err.response?.data?.error || "Login failed. Please try again.";
 
-      // Show error above both fields if both are filled
       if (form.email && form.password) {
         setErrors({
           form: errorMsg,
         });
       } else {
-        // Show error under the filled field
         setErrors({
           [form.email ? "email" : "password"]: errorMsg,
         });
@@ -58,52 +57,80 @@ export default function WelcomePage({ onLogin, onRegister, onGuest, onError }) {
     }
   };
 
-  return (
-    <div className="form-container">
-      <h2>Log In</h2>
-      {serverMsg && <div className="server-message">{serverMsg}</div>}
-      <form onSubmit={handleSubmit} noValidate>
-        {errors.form && <div className="error-message">{errors.form}</div>}
-        {[
-          { name: "email", label: "Email", type: "email" },
-          { name: "password", label: "Password", type: "password" },
-        ].map((f) => (
-          <div className="form-field" key={f.name}>
-            <label htmlFor={f.name}>{f.label}</label>
-            <input
-              id={f.name}
-              name={f.name}
-              type={f.type}
-              value={form[f.name]}
-              onChange={handleChange}
-            />
-            {errors[f.name] && (
-              <div className="error-message">{errors[f.name]}</div>
-            )}
+  if (showLoginForm) {
+    return (
+      <div className="form-container">
+        <h2>Log In</h2>
+        {serverMsg && <div className="server-message">{serverMsg}</div>}
+        <form onSubmit={handleSubmit} noValidate>
+          {errors.form && <div className="error-message">{errors.form}</div>}
+          {[
+            { name: "email", label: "Email", type: "email" },
+            { name: "password", label: "Password", type: "password" },
+          ].map((f) => (
+            <div className="form-field" key={f.name}>
+              <label htmlFor={f.name}>{f.label}</label>
+              <input
+                id={f.name}
+                name={f.name}
+                type={f.type}
+                value={form[f.name]}
+                onChange={handleChange}
+              />
+              {errors[f.name] && (
+                <div className="error-message">{errors[f.name]}</div>
+              )}
+            </div>
+          ))}
+          <div className="signup-footer">
+            <div className="footer-buttons">
+              <button
+                type="submit"
+                className="button_style button_hover"
+                disabled={loading}
+              >
+                {loading ? "Logging in…" : "Log In"}
+              </button>
+              <button
+                type="button"
+                className="button_style button_hover"
+                onClick={() => setShowLoginForm(false)}
+              >
+                Back
+              </button>
+            </div>
           </div>
-        ))}
-        <button
-          type="submit"
-          className="button_style button_hover full-width"
-          disabled={loading}
-        >
-          {loading ? "Logging in…" : "Log In"}
-        </button>
-      </form>
+        </form>
+      </div>
+    );
+  }
 
-      <div className="signup-footer">
-        <span className="footer-text">Don't have an account?</span>
-        <div className="footer-buttons">
+  return (
+    <div className="welcome-container">
+      <div className="welcome-content">
+        <h1 style={{ color: "var(--reddit-color)" }}>Welcome to Phreddit</h1>
+        <h2 style={{ color: "black" }}>The Phony Reddit</h2>
+
+        <div className="welcome-options">
           <button
             type="button"
-            className="button_style button_hover"
+            className="welcome-button button_style button_hover"
             onClick={onGuest}
           >
             Continue as Guest
           </button>
+
           <button
             type="button"
-            className="button_style button_hover"
+            className="welcome-button button_style button_hover"
+            onClick={() => setShowLoginForm(true)}
+          >
+            Log In
+          </button>
+
+          <button
+            type="button"
+            className="welcome-button button_style button_hover"
             onClick={onRegister}
           >
             Create Account
