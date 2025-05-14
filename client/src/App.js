@@ -31,6 +31,24 @@ function App() {
   const [error, setError] = useState("");
   const handleCancelRegister = () => setViewState({ page: "login" });
 
+  // Add session check on initial load
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await axios.get("/me");
+        if (response.data.user) {
+          setCurrentUser(response.data.user);
+          setViewState({ page: "home" });
+        }
+      } catch (err) {
+        console.error("Session check failed:", err);
+        setViewState({ page: "login" });
+      }
+    };
+
+    checkSession();
+  }, []);
+
   // --- ERROR HANDLING ---
   const handleError = (errorMsg = "") => {
     setError(errorMsg);
