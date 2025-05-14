@@ -8,15 +8,14 @@ Clearly explain the steps required to install and configure necessary packages,
 for both the server and the client, and the sequence of steps required to get
 your application running.
 
-In the sections below, list and describe each contribution briefly.
-
 ## Team Member 1 Contribution
 Jake Mallen
 
-- Use cases 1-19
+- Use cases 11-19
+- Jest tests
 
 ## Team Member 2 Contribution
 Catherine Park
 
-- Jest tests
+- Use cases 1-10
 - UML diagrams
