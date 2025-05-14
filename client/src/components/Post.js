@@ -33,17 +33,16 @@ const Comment = ({ comment, onReply, isGuest, onVote, currentUser }) => {
         <span className="comment_date">
           {formatTimeDelta(comment.commentedDate)}
         </span>
-        {!isGuest && (
-          <>
-            <span className="cdot"> ⋅ </span>
-            <div
-              className="vote-section"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                marginLeft: "5px",
-              }}
-            >
+        <span className="cdot"> ⋅ </span>
+        <div
+          className="vote-section"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+          }}
+        >
+          {!isGuest && (
+            <>
               <button
                 onClick={() => onVote(comment._id, "upvote")}
                 style={{
@@ -57,23 +56,25 @@ const Comment = ({ comment, onReply, isGuest, onVote, currentUser }) => {
               >
                 ▲
               </button>
-              <span className="comment_date" style={{ margin: "0 5px" }}>
-                {voteCount} {voteLabel}
-              </span>
-              <button
-                onClick={() => onVote(comment._id, "downvote")}
-                style={{
-                  color: hasDownvoted ? "#0079d3" : "var(--dark-text-color)",
-                  fontSize: "12px",
-                  padding: "0 2px",
-                }}
-                className="vote-button"
-              >
-                ▼
-              </button>
-            </div>
-          </>
-        )}
+            </>
+          )}
+          <span className="comment_date" style={{ margin: "0 5px" }}>
+            {voteCount} {voteLabel}
+          </span>
+          {!isGuest && (
+            <button
+              onClick={() => onVote(comment._id, "downvote")}
+              style={{
+                color: hasDownvoted ? "#0079d3" : "var(--dark-text-color)",
+                fontSize: "12px",
+                padding: "0 2px",
+              }}
+              className="vote-button"
+            >
+              ▼
+            </button>
+          )}
+        </div>
       </div>
       <div
         className="comment_content"
@@ -262,8 +263,8 @@ const Post = ({
           }}
         ></div>
         <div id="postpage_footer">
-          {!isGuest && (
-            <div className="vote-section">
+          <div className="vote-section">
+            {!isGuest && (
               <button
                 onClick={() => handleVote(currentPost._id, "upvote")}
                 style={{
@@ -273,14 +274,16 @@ const Post = ({
               >
                 ▲
               </button>
-              <span className="view_count">
-                {currentPost.upvoters.length - currentPost.downvoters.length}{" "}
-                {Math.abs(
-                  currentPost.upvoters.length - currentPost.downvoters.length
-                ) === 1
-                  ? "Vote"
-                  : "Votes"}
-              </span>
+            )}
+            <span className="view_count">
+              {currentPost.upvoters.length - currentPost.downvoters.length}{" "}
+              {Math.abs(
+                currentPost.upvoters.length - currentPost.downvoters.length
+              ) === 1
+                ? "Vote"
+                : "Votes"}
+            </span>
+            {!isGuest && (
               <button
                 onClick={() => handleVote(currentPost._id, "downvote")}
                 style={{
@@ -290,8 +293,8 @@ const Post = ({
               >
                 ▼
               </button>
-            </div>
-          )}
+            )}
+          </div>
           <span className="view_count">
             {currentPost.views} {viewString}
           </span>
