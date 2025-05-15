@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { formatTimeDelta, parseHyperlinks } from "./Helpers";
-import axios from "axios";
+import axios from "../axios";
 import ReputationErrorBanner from "./ReputationErrorBanner";
 
 const nestComments = (flatComments, commentIDs) => {

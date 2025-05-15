@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { formatTimeDelta, parseHyperlinks } from "./Helpers";
-import axios from "axios";
+import axios from "../axios";
 
 const CommunityPage = ({
   community,

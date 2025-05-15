@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axios from "./axios";
 
 import "./stylesheets/App.css";
 import "./stylesheets/index.css";
@@ -22,7 +22,6 @@ import EditPostPage from "./components/EditPostPage";
 import EditCommentPage from "./components/EditCommentPage";
 
 axios.defaults.baseURL = "http://localhost:8000";
-axios.defaults.withCredentials = true; // send session cookie
 
 function App() {
   /* ------------------------------------------------------------------
@@ -38,21 +37,24 @@ function App() {
    *  CHECK SESSION ON PAGE LOAD
    * ---------------------------------------------------------------- */
   useEffect(() => {
-    const checkSession = async () => {
+    const bootstrap = async () => {
+      const token = sessionStorage.getItem("token");
+      if (!token) {
+        setIsLoading(false);
+        return;
+      } // no token → show login
       try {
-        const { data } = await axios.get("/me");
+        const { data } = await axios.get("/me"); // token auto-attached
         if (data.user) {
           setCurrentUser(data.user);
           setViewState({ page: "home" });
         }
-      } catch (err) {
-        console.error("Session check failed:", err);
-        setViewState({ page: "login" });
-      } finally {
-        setIsLoading(false);
+      } catch {
+        /* token is invalid/expired – ignore */
       }
+      setIsLoading(false);
     };
-    checkSession();
+    bootstrap();
   }, []);
 
   /* ------------------------------------------------------------------
@@ -229,6 +231,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
+      sessionStorage.removeItem("token"); // forget token
       await axios.post("/logout");
       setCurrentUser(null);
       setViewState({ page: "login" });

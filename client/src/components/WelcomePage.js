@@ -1,9 +1,7 @@
 // src/components/WelcomePage.js
 
 import React, { useState } from "react";
-import axios from "axios";
-
-axios.defaults.withCredentials = true;
+import axios from "../axios";
 
 export default function WelcomePage({ onLogin, onRegister, onGuest }) {
   const [showLoginForm, setShowLoginForm] = useState(false);
@@ -35,9 +33,10 @@ export default function WelcomePage({ onLogin, onRegister, onGuest }) {
 
     setLoading(true);
     try {
-      const res = await axios.post("/login", form);
+      const response = await axios.post("/login", form);
+      const { token } = response.data;
+      sessionStorage.setItem("token", token);
       await onLogin();
-      setServerMsg(res.data.message);
     } catch (err) {
       console.error("Login failed:", err);
       const errorMsg =

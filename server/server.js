@@ -1,39 +1,55 @@
-// server.js
+// server.js  – JWT (token-based) auth, LOCAL-ONLY variant
 /* global process */
 
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const session = require("express-session");
-const apiRouter = require("./api");
+const jwt = require("jsonwebtoken");
+
+const buildApiRouter = require("./api");
 
 const app = express();
 const PORT = 8000;
 
-// --- Middleware ---
+/* ────────────────────────────
+   1.  Auth settings (LOCAL) */
+const JWT_SECRET = process.env.JWT_SECRET || "super-secret-local-key"; // hard-coded for dev only
+const TOKEN_AUD = process.env.TOKEN_AUD || "local"; // audience claim
+const TOKEN_TTL = process.env.TOKEN_TTL || "24h"; // expiration
+
+/* ────────────────────────────
+   2.  General middleware     */
 app.use(
   cors({
     origin: "http://localhost:3000",
-    credentials: true, // allow cookies to be sent
+    credentials: true, // allow front-end to send the Authorization header
   })
 );
 app.use(express.json());
 
-app.use(
-  session({
-    name: "phreddit.sid",
-    secret: process.env.SESSION_SECRET || "dev-secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-      secure: false,
-    },
-  })
-);
+/* ────────────────────────────
+   3.  JWT verify middleware  */
+app.use((req, _res, next) => {
+  const auth = req.get("Authorization") || "";
+  if (auth.startsWith("Bearer ")) {
+    const token = auth.slice(7).trim();
+    try {
+      const payload = jwt.verify(token, JWT_SECRET, { audience: TOKEN_AUD });
+      req.auth = {
+        userID: payload.sub,
+        displayName: payload.displayName,
+        isAdmin: payload.isAdmin,
+      };
+    } catch (err) {
+      console.error("JWT verify failed:", err.message);
+      // treat as unauthenticated
+    }
+  }
+  next();
+});
 
-// --- Database Connection ---
+/* ────────────────────────────
+   4.  Database               */
 mongoose
   .connect("mongodb://127.0.0.1:27017/phreddit", {
     useNewUrlParser: true,
@@ -42,22 +58,24 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB error:", err));
 
-// --- Routes ---
+/* ────────────────────────────
+   5.  Routes                 */
+const apiRouter = buildApiRouter(JWT_SECRET, TOKEN_AUD, TOKEN_TTL);
 app.use("/", apiRouter);
 
-// --- Health Check & Start ---
-app.get("/", (req, res) => res.send("Server is up"));
+app.get("/", (_req, res) => res.send("Server is up"));
+
+/* ────────────────────────────
+   6.  Start / shutdown       */
 const server = app.listen(PORT, () =>
   console.log(`Listening on http://localhost:${PORT}`)
 );
-
 module.exports = server;
 
-// --- Graceful Shutdown ---
 process.on("SIGINT", () => {
   server.close(async () => {
     await mongoose.disconnect();
-    console.log("Server closed. Database instance disconnected.");
+    console.log("Server closed. Database disconnected.");
     process.exit(0);
   });
 });
