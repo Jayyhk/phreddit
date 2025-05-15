@@ -5,13 +5,24 @@ const mongoose = require("mongoose");
 const request = require("supertest");
 const express = require("express");
 
-const apiRouter = require("./api");
+const buildApiRouter = require("./api"); // router FACTORY
 const Post = require("./models/posts");
 const Comment = require("./models/comments");
 
 const app = express();
 app.use(express.json());
-app.use("/", apiRouter);
+
+/* ── stub auth so every requireAuth check passes ── */
+app.use((req, _res, next) => {
+  req.auth = {
+    userID: new mongoose.Types.ObjectId(),
+    displayName: "jest-tester",
+    isAdmin: true,
+  };
+  next();
+});
+
+app.use("/", buildApiRouter("test-secret", "local", "1h"));
 
 const MONGO_URL = process.env.MONGO_URL || "mongodb://127.0.0.1:27017/phreddit";
 
@@ -26,9 +37,9 @@ afterAll(async () => {
   await mongoose.disconnect();
 });
 
-describe("Test 1 - Deleting a post cascades to its comments", () => {
+describe("Test 1 - deleting a post cascades to its comments", () => {
   test("DELETE /posts/:id removes post and all nested comments", async () => {
-    // Build a three-level comment tree: root → reply → grandchild
+    // Build a three-level comment tree
     const root = await Comment.create({
       content: "Root comment",
       commentedBy: "Alice",
@@ -59,15 +70,14 @@ describe("Test 1 - Deleting a post cascades to its comments", () => {
     await request(app).delete(`/posts/${post._id}`).expect(200);
 
     // Verify the post is gone
-    const foundPost = await Post.findById(post._id);
-    expect(foundPost).toBeNull();
+    expect(await Post.findById(post._id)).toBeNull();
 
     // Verify all comments have been removed
-    const comments = await Promise.all([
+    const lookups = await Promise.all([
       Comment.findById(root._id),
       Comment.findById(reply._id),
       Comment.findById(grandchild._id),
     ]);
-    comments.forEach((c) => expect(c).toBeNull());
+    lookups.forEach((c) => expect(c).toBeNull());
   });
 });

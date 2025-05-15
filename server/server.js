@@ -1,4 +1,4 @@
-// server.js  – JWT (token-based) auth, LOCAL-ONLY variant
+// server.js
 /* global process */
 
 const express = require("express");
@@ -13,59 +13,60 @@ const buildApiRouter = require("./api");
 const app = express();
 const PORT = 8000;
 
-/* ────────────────────────────
-   1.  Auth settings (LOCAL) */
-const JWT_SECRET = process.env.JWT_SECRET || "super-secret-local-key"; // hard-coded for dev only
-const TOKEN_AUD = process.env.TOKEN_AUD || "local"; // audience claim
-const TOKEN_TTL = process.env.TOKEN_TTL || "24h"; // expiration
+/* JWT settings */
+const JWT_SECRET = process.env.JWT_SECRET || "super-secret-local-key";
+const TOKEN_AUD = "local";
+const TOKEN_TTL = "24h";
 
-/* ────────────────────────────
-   2.  General middleware     */
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-    credentials: true, // allow front-end to send the Authorization header
-  })
-);
+/* Middleware */
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
+
+/* Session store
+  - Disabled when NODE_ENV === "test" so unit tests don’t spawn a second
+    Mongo client.
+  - Exported so tests can close the store’s client if it exists.            */
+const sessionStore =
+  process.env.NODE_ENV === "test"
+    ? undefined
+    : MongoStore.create({
+        mongoUrl: "mongodb://127.0.0.1:27017/phreddit",
+        collectionName: "sessions",
+      });
 
 app.use(
   session({
-    secret: "throw-away-secret", // only signs the cookie
-    store: MongoStore.create({
-      mongoUrl: "mongodb://127.0.0.1:27017/phreddit",
-      collectionName: "sessions",
-    }),
-    name: "phreddit.sid", // keep original cookie name
-    saveUninitialized: false, // don’t create a doc until /login
+    secret: "throw-away-secret",
+    store: sessionStore, // undefined ⇒ default MemoryStore in tests
+    name: "phreddit.sid",
+    saveUninitialized: false,
     resave: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000, sameSite: "lax" },
+    cookie: { maxAge: 86_400_000, sameSite: "lax" }, // 24 h
   })
 );
 
-/* ────────────────────────────
-   3.  JWT verify middleware  */
+/* ░ JWT verify ░ */
 app.use((req, _res, next) => {
   const auth = req.get("Authorization") || "";
   if (auth.startsWith("Bearer ")) {
-    const token = auth.slice(7).trim();
     try {
-      const payload = jwt.verify(token, JWT_SECRET, { audience: TOKEN_AUD });
+      const payload = jwt.verify(auth.slice(7).trim(), JWT_SECRET, {
+        audience: TOKEN_AUD,
+      });
       req.auth = {
         userID: payload.sub,
         displayName: payload.displayName,
         isAdmin: payload.isAdmin,
       };
     } catch (err) {
-      console.error("JWT verify failed:", err.message);
-      // treat as unauthenticated
+      console.error("JWT error:", err);
+      req.auth = null;
     }
   }
   next();
 });
 
-/* ────────────────────────────
-   4.  Database               */
+/* Database */
 mongoose
   .connect("mongodb://127.0.0.1:27017/phreddit", {
     useNewUrlParser: true,
@@ -74,24 +75,25 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.error("MongoDB error:", err));
 
-/* ────────────────────────────
-   5.  Routes                 */
-const apiRouter = buildApiRouter(JWT_SECRET, TOKEN_AUD, TOKEN_TTL);
-app.use("/", apiRouter);
-
+/* Routes */
+app.use("/", buildApiRouter(JWT_SECRET, TOKEN_AUD, TOKEN_TTL));
 app.get("/", (_req, res) => res.send("Server is up"));
 
-/* ────────────────────────────
-   6.  Start / shutdown       */
+/* Start & graceful shutdown */
 const server = app.listen(PORT, () =>
   console.log(`Listening on http://localhost:${PORT}`)
 );
-module.exports = server;
 
 process.on("SIGINT", () => {
   server.close(async () => {
     await mongoose.disconnect();
+    if (sessionStore?.client?.close) await sessionStore.client.close();
     console.log("Server closed. Database disconnected.");
     process.exit(0);
   });
 });
+
+/*  Export BOTH:
+    • server         → Supertest uses this in unit tests
+    • sessionStore   → tests close its Mongo client to avoid open handles     */
+module.exports = { server, sessionStore };
