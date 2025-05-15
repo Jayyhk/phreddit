@@ -25,20 +25,24 @@ axios.defaults.baseURL = "http://localhost:8000";
 axios.defaults.withCredentials = true; // send session cookie
 
 function App() {
-  // --- AUTH & VIEW STATE ---
+  /* ------------------------------------------------------------------
+   *  AUTH & VIEW STATE
+   * ---------------------------------------------------------------- */
   const [currentUser, setCurrentUser] = useState(null);
   const [viewState, setViewState] = useState({ page: "login" });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const handleCancelRegister = () => setViewState({ page: "login" });
 
-  // Add session check on initial load
+  /* ------------------------------------------------------------------
+   *  CHECK SESSION ON PAGE LOAD
+   * ---------------------------------------------------------------- */
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await axios.get("/me");
-        if (response.data.user) {
-          setCurrentUser(response.data.user);
+        const { data } = await axios.get("/me");
+        if (data.user) {
+          setCurrentUser(data.user);
           setViewState({ page: "home" });
         }
       } catch (err) {
@@ -48,28 +52,27 @@ function App() {
         setIsLoading(false);
       }
     };
-
     checkSession();
   }, []);
 
-  // --- ERROR HANDLING ---
-  const handleError = (errorMsg = "") => {
-    setError(errorMsg);
-  };
+  /* ------------------------------------------------------------------
+   *  ERROR HANDLING HELPERS
+   * ---------------------------------------------------------------- */
+  const handleError = (msg = "") => setError(msg);
 
   const handleErrorRedirect = () => {
     setError("");
     setCurrentUser(null);
-    setInitialLoadDone(false); // Reset the initial load flag
+    setInitialLoadDone(false); // force re-hydration after logout
     setViewState({ page: "login" });
   };
 
-  // Clear error when changing views
-  useEffect(() => {
-    setError("");
-  }, [viewState.page]);
+  // clear banner on every view change
+  useEffect(() => setError(""), [viewState.page]);
 
-  // --- APP DATA STATE ---
+  /* ------------------------------------------------------------------
+   *  APP-WIDE DATA STATE
+   * ---------------------------------------------------------------- */
   const [sortType, setSortType] = useState("newest");
   const [communities, setCommunities] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -82,11 +85,12 @@ function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-  // --- FETCH ALL COMMUNITIES/POSTS/FLAIRS WHEN AUTHED ---
+  /* ------------------------------------------------------------------
+   *  ONE-TIME BULK FETCH AFTER LOGIN
+   * ---------------------------------------------------------------- */
   useEffect(() => {
     if (!currentUser || initialLoadDone) return;
 
-    // Load all initial data on first login
     const fetchInitialData = async () => {
       try {
         const [communitiesRes, postsRes, flairsRes] = await Promise.all([
@@ -98,29 +102,43 @@ function App() {
         setPosts(postsRes.data);
         setLinkFlairs(flairsRes.data);
         setInitialLoadDone(true);
-        // Set viewState to home after data is loaded
         setViewState({ page: "home" });
       } catch (err) {
-        console.error("Failed to fetch initial data:", err);
-        handleError();
+        console.error("Initial fetch failed:", err);
+        handleError("Failed to load initial data. Please refresh.");
       }
     };
-
     fetchInitialData();
   }, [currentUser, initialLoadDone]);
 
-  // Function to refresh communities list
+  /* ------------------------------------------------------------------
+   *  SMALL REFRESH HELPERS
+   * ---------------------------------------------------------------- */
+  // refresh the list of communities in the side-bar
   const refreshCommunities = async () => {
     try {
-      const res = await axios.get("/communities");
-      setCommunities(res.data);
+      const { data } = await axios.get("/communities");
+      setCommunities(data);
     } catch (err) {
-      console.error("Failed to fetch communities:", err);
+      console.error("Failed to refresh communities:", err);
       handleError();
     }
   };
 
-  // --- UPDATE COMMENT COUNTS WHEN posts CHANGES ---
+  // ---------- NEW helper: refresh the comment count for ONE post ------
+  const refreshCommentCount = async (postID) => {
+    try {
+      const { data } = await axios.get(`/posts/${postID}/comments/count`);
+      setCommentCounts((cc) => ({ ...cc, [postID]: data.count }));
+    } catch (err) {
+      console.error("Failed to refresh comment count:", err);
+      // no banner here; silent failure is OK
+    }
+  };
+
+  /* ------------------------------------------------------------------
+   *  KEEP COMMENT COUNTS & LATEST DATES IN SYNC
+   * ---------------------------------------------------------------- */
   useEffect(() => {
     if (!currentUser) return;
     posts.forEach((post) =>
@@ -136,7 +154,6 @@ function App() {
     );
   }, [posts, currentUser]);
 
-  // --- UPDATE LATEST COMMENT DATES ---
   useEffect(() => {
     if (!currentUser) return;
     posts.forEach((post) =>
@@ -155,50 +172,56 @@ function App() {
     );
   }, [posts, currentUser]);
 
-  // --- LOAD A SINGLE POST & ITS COMMENTS ---
+  /* ------------------------------------------------------------------
+   *  LOAD ONE POST & ITS COMMENTS WHEN NEEDED
+   * ---------------------------------------------------------------- */
   useEffect(() => {
-    if (viewState.page === "post") {
-      const pid = viewState.postID;
-      axios
-        .get(`/posts/${pid}`)
-        .then((r) => setCurrentPost(r.data))
-        .catch((err) => {
-          console.error("Failed to fetch post:", err);
-          handleError();
-        });
-      axios
-        .get(`/posts/${pid}/comments/all`)
-        .then((r) => setCurrentComments(r.data))
-        .catch((err) => {
-          console.error("Failed to fetch comments:", err);
-          handleError();
-        });
-      const comm = communities.find((c) =>
-        c.postIDs.map((id) => id.toString()).includes(pid)
-      );
-      setCurrentCommunity(comm || null);
-    }
-  }, [viewState.page, viewState.postID, communities]);
+    if (viewState.page !== "post") return;
 
-  // --- PERFORM SEARCH WHEN search VIEW IS ACTIVE ---
+    const pid = viewState.postID;
+    axios
+      .get(`/posts/${pid}`)
+      .then((r) => setCurrentPost(r.data))
+      .catch((err) => {
+        console.error("Failed to fetch post:", err);
+        handleError();
+      });
+
+    axios
+      .get(`/posts/${pid}/comments/all`)
+      .then((r) => setCurrentComments(r.data))
+      .catch((err) => {
+        console.error("Failed to fetch comments:", err);
+        handleError();
+      });
+
+    const comm = communities.find((c) =>
+      c.postIDs.map((id) => id.toString()).includes(pid)
+    );
+    setCurrentCommunity(comm || null);
+  }, [viewState, communities]);
+
+  /* ------------------------------------------------------------------
+   *  PERFORM GLOBAL SEARCH
+   * ---------------------------------------------------------------- */
   useEffect(() => {
-    if (viewState.page === "search") {
-      axios
-        .get(`/search?query=${encodeURIComponent(viewState.query)}`)
-        .then((r) => setSearchResults(r.data))
-        .catch((err) => {
-          console.error("Failed to search:", err);
-          handleError();
-        });
-    }
-  }, [viewState.page, viewState.query]);
+    if (viewState.page !== "search") return;
+    axios
+      .get(`/search?query=${encodeURIComponent(viewState.query)}`)
+      .then((r) => setSearchResults(r.data))
+      .catch((err) => {
+        console.error("Search failed:", err);
+        handleError();
+      });
+  }, [viewState]);
 
-  // --- AUTH HANDLERS ---
+  /* ------------------------------------------------------------------
+   *  AUTH HELPERS
+   * ---------------------------------------------------------------- */
   const handleLogin = async () => {
     try {
       const res = await axios.get("/me");
       setCurrentUser(res.data.user);
-      // Don't set viewState here, let the effect handle it
     } catch (err) {
       console.error("Login failed:", err);
     }
@@ -209,57 +232,61 @@ function App() {
       await axios.post("/logout");
       setCurrentUser(null);
       setViewState({ page: "login" });
-      setInitialLoadDone(false); // Reset the initial load flag
+      setInitialLoadDone(false);
     } catch (err) {
       console.error("Logout failed:", err);
-      const errorMsg =
-        err.response?.data?.error || "Failed to logout. Please try again.";
-      handleError(errorMsg);
+      handleError(
+        err.response?.data?.error || "Failed to logout. Please try again."
+      );
     }
   };
 
   const handleGuest = () => {
     setCurrentUser({ displayName: "Guest", guest: true });
-    setInitialLoadDone(false); // Reset initial load flag
-    // Set view state to home to trigger data loading
+    setInitialLoadDone(false);
     setViewState({ page: "home" });
   };
 
   const handleRegisterNav = () => setViewState({ page: "register" });
   const handleRegistered = () => setViewState({ page: "login" });
 
+  /* ------------------------------------------------------------------
+   *  LIGHTWEIGHT HELPERS USED BY CHILD COMPONENTS
+   * ---------------------------------------------------------------- */
   const renderView = (page, params = {}) => {
     if (["home", "community", "search"].includes(page)) setSortType("newest");
+
     if (page === "profile") {
-      // Force a refresh of the profile page by first setting to a different page
+      // force refresh of profile view (quick trick)
       setViewState({ page: "home" });
       setTimeout(() => {
         setViewState({ page: "profile" });
         window.scrollTo(0, 0);
       }, 0);
-    } else {
-      setViewState({ page, ...params });
-      window.scrollTo(0, 0);
+      return;
     }
+    setViewState({ page, ...params });
+    window.scrollTo(0, 0);
   };
 
-  const sortPosts = (list, mode) => {
-    const sorted = [...list];
-    if (mode === "newest") {
-      sorted.sort((a, b) => new Date(b.postedDate) - new Date(a.postedDate));
-    } else if (mode === "oldest") {
-      sorted.sort((a, b) => new Date(a.postedDate) - new Date(b.postedDate));
-    } else if (mode === "active") {
-      sorted.sort((a, b) => {
-        const aDate = latestDates[a._id] || new Date(0);
-        const bDate = latestDates[b._id] || new Date(0);
-        if (bDate - aDate === 0) {
-          return new Date(b.postedDate) - new Date(a.postedDate);
-        }
-        return bDate - aDate;
-      });
-    }
-    return sorted;
+  const sortPosts = (arr, type) => {
+    if (type === "newest")
+      return [...arr].sort(
+        (a, b) => new Date(b.postedDate) - new Date(a.postedDate)
+      );
+
+    if (type === "latestComment")
+      return [...arr].sort(
+        (a, b) => (latestDates[b._id] || 0) - (latestDates[a._id] || 0)
+      );
+
+    // votes
+    return [...arr].sort(
+      (a, b) =>
+        b.upvoters.length -
+        b.downvoters.length -
+        (a.upvoters.length - a.downvoters.length)
+    );
   };
 
   const handlePostClick = async (postID) => {
@@ -273,21 +300,26 @@ function App() {
         setPosts((prev) => prev.map((p) => (p._id === postID ? updated : p)));
         setCurrentPost(updated);
       } catch (e) {
-        console.error("Failed to increment views", e);
+        console.error("Failed updating views:", e);
       }
     }
     renderView("post", { postID });
   };
 
-  const getCommentCount = (postID) =>
-    commentCounts.hasOwnProperty(postID) ? commentCounts[postID] : null;
-  const getLinkFlairContent = (linkFlairID) => {
-    const lf = linkFlairs.find((l) => l._id === linkFlairID);
+  const getCommentCount = (pid) =>
+    commentCounts.hasOwnProperty(pid) ? commentCounts[pid] : null;
+
+  const getLinkFlairContent = (flairID) => {
+    const lf = linkFlairs.find((l) => l._id === flairID);
     return lf ? lf.content : "";
   };
 
+  /* ------------------------------------------------------------------
+   *  MAIN ROUTER
+   * ---------------------------------------------------------------- */
   let mainContent;
   switch (viewState.page) {
+    /* -------------------- HOME -------------------- */
     case "home":
       mainContent = (
         <HomePage
@@ -303,6 +335,7 @@ function App() {
       );
       break;
 
+    /* ------------------ COMMUNITY ----------------- */
     case "community": {
       const { communityID } = viewState;
       const comm = communities.find((c) => c._id === communityID);
@@ -327,6 +360,7 @@ function App() {
       break;
     }
 
+    /* --------------------- POST -------------------- */
     case "post": {
       const { postID } = viewState;
       const post = posts.find((p) => p._id === postID);
@@ -356,6 +390,7 @@ function App() {
       break;
     }
 
+    /* -------------- CREATE / EDIT COMMUNITY -------- */
     case "create-community":
       if (viewState.community) {
         mainContent = (
@@ -365,19 +400,20 @@ function App() {
             onEngender={async (data) => {
               try {
                 await axios.put(`/communities/${data._id}`, data);
-                const communitiesResponse = await axios.get("/communities");
-                setCommunities(communitiesResponse.data);
+                const { data: comms } = await axios.get("/communities");
+                setCommunities(comms);
                 renderView("profile");
                 return true;
               } catch (e) {
-                console.error("Failed to update community", e);
+                console.error("Failed to update community:", e);
                 return false;
               }
             }}
             onDeleteCommunity={async (id) => {
               try {
                 await axios.delete(`/communities/${id}`);
-                await refreshCommunities();
+                const { data: comms } = await axios.get("/communities");
+                setCommunities(comms);
                 renderView("profile");
               } catch (err) {
                 handleError(
@@ -397,12 +433,12 @@ function App() {
             onEngender={async (data) => {
               try {
                 const r = await axios.post("/communities", data);
-                const communitiesResponse = await axios.get("/communities");
-                setCommunities(communitiesResponse.data);
+                const { data: comms } = await axios.get("/communities");
+                setCommunities(comms);
                 renderView("community", { communityID: r.data._id });
                 return true;
               } catch (e) {
-                console.error("Failed to create community", e);
+                console.error("Failed to create community:", e);
                 return false;
               }
             }}
@@ -412,6 +448,7 @@ function App() {
       }
       break;
 
+    /* ---------------- CREATE / EDIT POST ----------- */
     case "create-post":
       if (viewState.post) {
         mainContent = (
@@ -423,21 +460,21 @@ function App() {
             onSubmit={async (data) => {
               try {
                 const r = await axios.put(`/posts/${data._id}`, data);
-                setPosts((prevPosts) =>
-                  prevPosts.map((p) => (p._id === data._id ? r.data : p))
+                setPosts((prev) =>
+                  prev.map((p) => (p._id === data._id ? r.data : p))
                 );
                 renderView("profile");
                 return true;
               } catch (e) {
-                console.error("Failed to update post", e);
+                console.error("Failed to update post:", e);
                 return false;
               }
             }}
             onDeletePost={async (id) => {
               try {
                 await axios.delete(`/posts/${id}`);
-                const postsResponse = await axios.get("/posts");
-                setPosts(postsResponse.data);
+                const { data: ps } = await axios.get("/posts");
+                setPosts(ps);
                 renderView("profile");
               } catch (err) {
                 handleError(
@@ -460,40 +497,37 @@ function App() {
                 const community = communities.find(
                   (c) => c._id === data.communityID
                 );
-                if (!community) {
-                  throw new Error("Selected community not found");
-                }
+                if (!community) throw new Error("Community not found");
 
                 let flairID = data.selectedLinkFlairID;
                 if (!flairID && data.newLinkFlair) {
-                  const r1 = await axios.post("/linkflairs", {
+                  const { data: lf } = await axios.post("/linkflairs", {
                     content: data.newLinkFlair,
                   });
-                  flairID = r1.data._id;
-                  setLinkFlairs((prev) => [r1.data, ...prev]);
+                  flairID = lf._id;
+                  setLinkFlairs((prev) => [lf, ...prev]);
                 }
 
-                const postData = {
+                const postPayload = {
                   title: data.title,
                   content: data.content,
                   postedBy: data.postedBy,
+                  ...(flairID && { linkFlairID: flairID }),
                 };
 
-                if (flairID) {
-                  postData.linkFlairID = flairID;
-                }
+                const { data: newPost } = await axios.post(
+                  "/posts",
+                  postPayload
+                );
 
-                const r2 = await axios.post("/posts", postData);
-                const newPost = r2.data;
-
-                await axios.post(`/communities/${data.communityID}/add-post`, {
+                await axios.post(`/communities/${community._id}/add-post`, {
                   postID: newPost._id,
                 });
 
                 setPosts((prev) => [newPost, ...prev]);
                 setCommunities((prev) =>
                   prev.map((c) =>
-                    c._id === data.communityID
+                    c._id === community._id
                       ? { ...c, postIDs: [newPost._id, ...c.postIDs] }
                       : c
                   )
@@ -502,11 +536,10 @@ function App() {
                 renderView("post", { postID: newPost._id });
               } catch (err) {
                 console.error("Failed to create post:", err);
-                const errorMsg =
+                handleError(
                   err.response?.data?.error ||
-                  err.message ||
-                  "Failed to create post. Please try again.";
-                handleError(errorMsg);
+                    "Failed to create post. Please try again."
+                );
               }
             }}
             onError={handleError}
@@ -515,8 +548,10 @@ function App() {
       }
       break;
 
+    /* --------------- CREATE / EDIT COMMENT --------- */
     case "create-comment":
       if (viewState.comment) {
+        /* ---------- EDIT EXISTING COMMENT ---------- */
         mainContent = (
           <EditCommentPage
             comment={viewState.comment}
@@ -530,13 +565,22 @@ function App() {
                 renderView("profile");
                 return true;
               } catch (e) {
-                console.error("Failed to update comment", e);
+                console.error("Failed to update comment:", e);
                 return false;
               }
             }}
+            /* ---------- NEW LOGIC ⇣ refresh count after delete ---------- */
             onDeleteComment={async (id) => {
               try {
+                // find the owning post BEFORE we delete the comment
+                const { data } = await axios.get(`/comments/${id}/post`);
+                const postID = data.postID;
+
                 await axios.delete(`/comments/${id}`);
+
+                if (postID) {
+                  await refreshCommentCount(postID);
+                }
                 renderView("profile");
               } catch (err) {
                 handleError(
@@ -549,33 +593,35 @@ function App() {
           />
         );
       } else {
+        /* ---------- CREATE NEW COMMENT (or reply) ---- */
         mainContent = (
           <CreateCommentPage
             currentUser={currentUser}
             onSubmit={async (data) => {
               try {
-                const r = await axios.post("/comments", {
+                const { data: newComment } = await axios.post("/comments", {
                   content: data.content,
                   commentedBy: data.commentedBy,
                 });
-                const cid = r.data._id;
 
                 if (viewState.replyCommentID) {
                   await axios.post(
                     `/comments/${viewState.replyCommentID}/add-reply`,
-                    { replyCommentID: cid }
+                    { replyCommentID: newComment._id }
                   );
                 } else {
                   await axios.post(`/posts/${viewState.postID}/add-comment`, {
-                    commentID: cid,
+                    commentID: newComment._id,
                   });
                 }
 
+                // optimistic local update
                 setCommentCounts((cc) => ({
                   ...cc,
                   [viewState.postID]: (cc[viewState.postID] || 0) + 1,
                 }));
 
+                // refresh “latest comment” date
                 try {
                   const ld = await axios.get(
                     `/posts/${viewState.postID}/latest-comment-date`
@@ -591,11 +637,10 @@ function App() {
                 renderView("post", { postID: viewState.postID });
               } catch (err) {
                 console.error("Failed to add comment:", err);
-                const errorMsg =
+                handleError(
                   err.response?.data?.error ||
-                  err.message ||
-                  "Failed to add comment. Please try again.";
-                handleError(errorMsg);
+                    "Failed to add comment. Please try again."
+                );
               }
             }}
             onError={handleError}
@@ -604,6 +649,7 @@ function App() {
       }
       break;
 
+    /* --------------------- SEARCH ------------------ */
     case "search":
       mainContent = (
         <HomePage
@@ -620,6 +666,7 @@ function App() {
       );
       break;
 
+    /* -------------------- PROFILE ------------------ */
     case "profile":
       mainContent = (
         <UserProfilePage
@@ -635,6 +682,7 @@ function App() {
       );
       break;
 
+    /* -------------------- DEFAULT ------------------ */
     default:
       mainContent = <div>Invalid view</div>;
   }
@@ -642,10 +690,10 @@ function App() {
   const activeCommunityID =
     viewState.page === "community" ? viewState.communityID : null;
 
-  // --- AUTHENTICATION FLOWS ---
-  if (isLoading) {
-    return <div></div>;
-  }
+  /* ------------------------------------------------------------------
+   *  AUTHENTICATION FLOW RENDER GUARDS
+   * ---------------------------------------------------------------- */
+  if (isLoading) return <div></div>;
 
   if (!currentUser) {
     if (viewState.page === "register") {
@@ -673,9 +721,13 @@ function App() {
     );
   }
 
+  /* ------------------------------------------------------------------
+   *  MAIN LAYOUT
+   * ---------------------------------------------------------------- */
   return (
     <div id="wrapper">
       <ErrorBanner error={error} onError={handleErrorRedirect} />
+
       <Banner
         onTitleClick={handleErrorRedirect}
         onSearch={(q) => renderView("search", { query: q })}
@@ -688,6 +740,7 @@ function App() {
         onProfileClick={() => renderView("profile")}
         isProfileActive={viewState.page === "profile"}
       />
+
       <Navbar
         communities={communities}
         onHomeClick={() => {
@@ -708,6 +761,7 @@ function App() {
         currentUser={currentUser}
         onError={handleError}
       />
+
       <div id="main">{mainContent}</div>
     </div>
   );

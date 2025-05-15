@@ -72,6 +72,8 @@ const EditCommentPage = ({
         err.response?.data?.error ||
         "Failed to delete comment. Please try again.";
       onError(errorMsg);
+    } finally {
+      setShowDeleteConfirm(false);
     }
   };
 

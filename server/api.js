@@ -1211,11 +1211,11 @@ router.delete("/communities/:id", async (req, res) => {
       return res.status(401).json({ error: "User not found" });
     }
 
-    // Only allow the creator to delete the community
-    if (community.creator !== user.displayName) {
-      return res
-        .status(403)
-        .json({ error: "Only the community creator can delete it" });
+    // Allow both the creator and admin users to delete the community
+    if (community.creator !== user.displayName && !user.isAdmin) {
+      return res.status(403).json({
+        error: "Only the community creator or an admin can delete it",
+      });
     }
 
     // Helper to recursively delete comments
@@ -1271,11 +1271,11 @@ router.delete("/comments/:id", async (req, res) => {
       return res.status(401).json({ error: "User not found" });
     }
 
-    // Only allow the commenter to delete their comment
-    if (comment.commentedBy !== user.displayName) {
+    // Allow both the comment author and admin users to delete the comment
+    if (comment.commentedBy !== user.displayName && !user.isAdmin) {
       return res
         .status(403)
-        .json({ error: "Only the comment author can delete it" });
+        .json({ error: "Only the comment author or an admin can delete it" });
     }
 
     // Helper to recursively delete replies
