@@ -15,7 +15,6 @@ const CommunityPage = ({
 }) => {
   const [isJoining, setIsJoining] = useState(false);
   const [currentCommunity, setCurrentCommunity] = useState(community);
-  const [currentPosts, setCurrentPosts] = useState(posts);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -27,12 +26,6 @@ const CommunityPage = ({
           `/communities/${community._id}`
         );
         setCurrentCommunity(communityResponse.data);
-
-        // Fetch fresh posts for this community
-        const postsResponse = await axios.get(
-          `/communities/${community._id}/posts`
-        );
-        setCurrentPosts(postsResponse.data);
       } catch (err) {
         console.error("Failed to fetch community data:", err);
         onError("Failed to load community data. Please try again.");
@@ -174,7 +167,7 @@ const CommunityPage = ({
       </div>
 
       <div className="posts">
-        {currentPosts.map((post) => {
+        {posts.map((post) => {
           const viewString = post.views === 1 ? "View" : "Views";
           const commentCount = getCommentCount(post._id);
           const commentString = commentCount === 1 ? "Comment" : "Comments";

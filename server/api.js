@@ -38,10 +38,15 @@ router.post("/users", async (req, res) => {
     }
 
     // 3. Check for existing email or displayName
-    if (await User.exists({ $or: [{ email }, { displayName }] })) {
+    if (await User.exists({ email })) {
       return res
         .status(400)
-        .json({ error: "Email or display name already taken." });
+        .json({ field: "email", error: "Email already taken." });
+    }
+    if (await User.exists({ displayName })) {
+      return res
+        .status(400)
+        .json({ field: "displayName", error: "Display name already taken." });
     }
 
     // 4. Password must not contain personal info

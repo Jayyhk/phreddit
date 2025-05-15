@@ -56,10 +56,14 @@ export default function CreateAccountPage({ onRegistered, onCancel, onError }) {
       onRegistered();
     } catch (err) {
       console.error("Registration failed:", err);
-      const errorMsg =
-        err.response?.data?.error || "Registration failed. Please try again.";
-      onError(errorMsg);
-      return;
+      const { error: msg, field } = err.response?.data || {};
+      if (field) {
+        // put the server error under the correct input
+        setErrors({ [field]: msg });
+      } else {
+        // fall back to global banner for unexpected errors
+        onError(msg || "Registration failed. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
