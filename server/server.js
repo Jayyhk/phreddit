@@ -5,6 +5,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const session = require("express-session");
+const MongoStore = require("connect-mongo");
 
 const buildApiRouter = require("./api");
 
@@ -26,6 +28,20 @@ app.use(
   })
 );
 app.use(express.json());
+
+app.use(
+  session({
+    secret: "throw-away-secret", // only signs the cookie
+    store: MongoStore.create({
+      mongoUrl: "mongodb://127.0.0.1:27017/phreddit",
+      collectionName: "sessions",
+    }),
+    name: "phreddit.sid", // keep original cookie name
+    saveUninitialized: false, // don’t create a doc until /login
+    resave: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000, sameSite: "lax" },
+  })
+);
 
 /* ────────────────────────────
    3.  JWT verify middleware  */

@@ -33,7 +33,9 @@ export default function WelcomePage({ onLogin, onRegister, onGuest }) {
 
     setLoading(true);
     try {
-      const response = await axios.post("/login", form);
+      const response = await axios.post("/login", form, {
+        withCredentials: true,
+      });
       const { token } = response.data;
       sessionStorage.setItem("token", token);
       await onLogin();

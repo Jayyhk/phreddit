@@ -231,8 +231,8 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      sessionStorage.removeItem("token"); // forget token
-      await axios.post("/logout");
+      await axios.post("/logout", {}, { withCredentials: true });
+      sessionStorage.removeItem("token"); // Then remove token
       setCurrentUser(null);
       setViewState({ page: "login" });
       setInitialLoadDone(false);
@@ -624,7 +624,7 @@ function App() {
                   [viewState.postID]: (cc[viewState.postID] || 0) + 1,
                 }));
 
-                // refresh “latest comment” date
+                // refresh "latest comment" date
                 try {
                   const ld = await axios.get(
                     `/posts/${viewState.postID}/latest-comment-date`
