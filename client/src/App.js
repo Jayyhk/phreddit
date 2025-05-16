@@ -273,23 +273,59 @@ function App() {
   };
 
   const sortPosts = (arr, type) => {
-    if (type === "newest")
-      return [...arr].sort(
+    const sortByType = (posts) => {
+      if (type === "newest")
+        return [...posts].sort(
+          (a, b) => new Date(b.postedDate) - new Date(a.postedDate)
+        );
+
+      if (type === "oldest")
+        return [...posts].sort(
+          (a, b) => new Date(a.postedDate) - new Date(b.postedDate)
+        );
+
+      if (type === "active") {
+        return [...posts].sort((a, b) => {
+          // First compare by latest comment date
+          const dateA = latestDates[a._id] || new Date(a.postedDate);
+          const dateB = latestDates[b._id] || new Date(b.postedDate);
+          const dateDiff = dateB - dateA;
+
+          // If there's a tie in comment dates, break it by post date
+          if (dateDiff === 0) {
+            return new Date(b.postedDate) - new Date(a.postedDate);
+          }
+
+          return dateDiff;
+        });
+      }
+
+      // Default to newest if type is not recognized
+      return [...posts].sort(
         (a, b) => new Date(b.postedDate) - new Date(a.postedDate)
       );
+    };
 
-    if (type === "latestComment")
-      return [...arr].sort(
-        (a, b) => (latestDates[b._id] || 0) - (latestDates[a._id] || 0)
-      );
+    // If we're on the home page, we need to sort joined and other communities separately
+    if (viewState.page === "home") {
+      const userCommunities = communities.filter((c) => c.isMember);
+      const userCommunityIds = userCommunities.map((c) => c._id);
 
-    // votes
-    return [...arr].sort(
-      (a, b) =>
-        b.upvoters.length -
-        b.downvoters.length -
-        (a.upvoters.length - a.downvoters.length)
-    );
+      const userCommunityPosts = arr.filter((post) => {
+        const community = communities.find((c) => c.postIDs.includes(post._id));
+        return community && userCommunityIds.includes(community._id);
+      });
+
+      const otherPosts = arr.filter((post) => {
+        const community = communities.find((c) => c.postIDs.includes(post._id));
+        return !community || !userCommunityIds.includes(community._id);
+      });
+
+      return [...sortByType(userCommunityPosts), ...sortByType(otherPosts)];
+    }
+
+    // For other pages, just sort the entire array
+    return sortByType(arr);
   };
 
   const handlePostClick = async (postID) => {
