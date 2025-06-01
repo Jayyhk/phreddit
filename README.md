@@ -1,11 +1,11 @@
-# Phreddit - A Reddit-inspired Web Application
+# phreddit - A Reddit-inspired Web Application
 
-Phreddit is a full-stack web application inspired by Reddit, built using MongoDB, Express, React, and Node.js.
+phreddit is a full-stack web application inspired by Reddit, built using MongoDB, Express, React, and Node.js.
 
 ## Project Structure
 
 ```
-project-s25-dvd/
+phreddit/
 ├── client/               # React frontend
 │   ├── public/           # Static files
 │   ├── src/              # React source code
@@ -27,7 +27,7 @@ project-s25-dvd/
 │   ├── express.test.js   # API tests
 │   ├── eslint.config.mjs # ESLint configuration
 │   └── package.json      # Backend dependencies
-├── images/               # UML diagrams and other images
+├── images/               # UML diagrams
 ├── .gitignore            # Git ignore rules
 └── README.md             # This file
 ```
@@ -90,7 +90,7 @@ cd server
 npm start
 ```
 
-The server will run on http://localhost:8000
+The server will run on http://localhost:8000.
 
 2. In a new terminal from the repo root, start the client (from the client directory):
 
