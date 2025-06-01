@@ -45,7 +45,7 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/jayyhk/phreddit.git
+git clone https://github.com/Jayyhk/phreddit.git
 cd phreddit
 ```
 
@@ -99,7 +99,7 @@ cd client
 npm start
 ```
 
-The client will run on http://localhost:3000
+The client will run on http://localhost:3000.
 
 ## Testing with Jest
 
@@ -120,16 +120,3 @@ npm test
 ## UML Diagrams
 
 The class, sequence, and state diagrams can be found in `images/`.
-
-## Team Member Contributions
-
-### Team Member 1: Jake Mallen
-
-- Use cases 11-19
-- Jest tests
-- README.md
-
-### Team Member 2: Catherine Park
-
-- Use cases 1-10
-- UML diagrams
