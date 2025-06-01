@@ -1,5 +1,3 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/2tEDYwzN)
-
 # Phreddit - A Reddit-inspired Web Application
 
 Phreddit is a full-stack web application inspired by Reddit, built using MongoDB, Express, React, and Node.js.
@@ -47,8 +45,8 @@ Before you begin, ensure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/ckane-sbu-s25-cse316/project-s25-dvd.git
-cd project-s25-dvd
+git clone https://github.com/jayyhk/phreddit.git
+cd phreddit
 ```
 
 ### 2. Install Dependencies
